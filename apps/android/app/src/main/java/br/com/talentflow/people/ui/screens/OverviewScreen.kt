@@ -56,7 +56,7 @@ fun OverviewScreen(vm: AppViewModel, user: User) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(s.name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(112.dp))
                     Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                        Box(Modifier.fillMaxWidth(s.value / max.toFloat()).height(10.dp).background(LocalTf.brand))
+                        Box(Modifier.fillMaxWidth(s.value / max.toFloat()).height(10.dp).background(LocalTf.current.brand))
                     }
                     Text(s.value.toString(), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End, modifier = Modifier.width(36.dp))
                 }

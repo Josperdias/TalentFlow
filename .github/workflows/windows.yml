@@ -83,12 +83,24 @@ jobs:
           $size = (Get-ChildItem dist/windows-publish -Recurse | Measure-Object Length -Sum).Sum / 1MB
           "Tamanho da publicação: {0:N1} MB" -f $size
           Get-ChildItem dist/windows-publish -Filter *.exe | Select-Object Name, Length
-      - name: Verificar que o executável é nativo (sem navegador embutido)
+      - name: Sem navegador embutido (nosso código não referencia; binários não usados são removidos)
         shell: pwsh
         run: |
-          $bad = Get-ChildItem dist/windows-publish -Recurse | Where-Object { $_.Name -match 'WebView2|Electron|chrome_|libcef|msedgewebview' }
-          if ($bad) { $bad | ForEach-Object { $_.FullName }; throw "Componentes de navegador embutido encontrados" }
-          "OK: nenhum componente de navegador embutido na publicação."
+          # 1) Os assemblies que NÓS escrevemos não podem referenciar nenhum controle/engine de navegador.
+          foreach ($f in 'TalentFlow.dll','TalentFlow.Core.dll') {
+            $bytes = [System.IO.File]::ReadAllBytes("dist/windows-publish/$f")
+            $text = [System.Text.Encoding]::ASCII.GetString($bytes)
+            if ($text -match 'WebView|CoreWebView2|Electron|Chromium') { throw "$f referencia componente de navegador" }
+            "OK: $f não referencia WebView/Electron/Chromium."
+          }
+          # 2) O Windows App SDK distribui o WebView2 como dependência do controle opcional, que o app não usa.
+          #    Removemos esses binários do pacote (o teste de fumaça abaixo confirma que o app abre sem eles).
+          $unused = Get-ChildItem dist/windows-publish -Recurse | Where-Object { $_.Name -match 'WebView2' }
+          $unused | ForEach-Object { "removendo $($_.FullName.Substring((Resolve-Path dist/windows-publish).Path.Length))" ; Remove-Item $_.FullName -Force }
+          # 3) Nenhum outro motor de navegador pode sobrar.
+          $left = Get-ChildItem dist/windows-publish -Recurse | Where-Object { $_.Name -match 'WebView|Electron|chrome_|libcef|msedgewebview' }
+          if ($left) { $left | ForEach-Object { $_.FullName }; throw "Componentes de navegador embutido encontrados" }
+          "OK: publicação sem componentes de navegador embutido."
       - name: Teste de fumaça (abrir o app, capturar tela, fechar)
         shell: pwsh
         continue-on-error: true

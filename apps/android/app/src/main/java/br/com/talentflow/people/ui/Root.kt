@@ -80,7 +80,7 @@ fun TalentFlowRoot(vm: AppViewModel) {
 @Composable
 private fun AuthFrame(title: String, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center) {
-        Text("TALENTFLOW PEOPLE", style = MaterialTheme.typography.labelSmall, color = LocalTf.brand)
+        Text("TALENTFLOW PEOPLE", style = MaterialTheme.typography.labelSmall, color = LocalTf.current.brand)
         Spacer(Modifier.height(8.dp))
         Text(title, style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(24.dp))
@@ -125,7 +125,7 @@ private fun LoginScreen(vm: AppViewModel, message: String?) {
             Text(if (busy) "Entrando…" else "Entrar")
         }
         Spacer(Modifier.height(8.dp))
-        Text(server ?: "", style = MaterialTheme.typography.bodySmall, color = LocalTf.inkFaint)
+        Text(server ?: "", style = MaterialTheme.typography.bodySmall, color = LocalTf.current.inkFaint)
         TextButton(onClick = { vm.changeServer() }) { Text("Alterar servidor") }
     }
 }
@@ -168,12 +168,12 @@ private fun MainScaffold(vm: AppViewModel, user: User) {
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                val color = when (connection) { Connection.Online -> LocalTf.positive; Connection.Offline -> LocalTf.critical; Connection.Connecting -> LocalTf.inkFaint }
+                val color = when (connection) { Connection.Online -> LocalTf.current.positive; Connection.Offline -> LocalTf.current.critical; Connection.Connecting -> LocalTf.current.inkFaint }
                 androidx.compose.foundation.Canvas(Modifier.size(8.dp)) { drawCircle(color) }
                 Spacer(Modifier.size(8.dp))
                 Text(when (connection) { Connection.Online -> "Sincronizado"; Connection.Offline -> "Sem conexão com o servidor"; Connection.Connecting -> "Conectando…" },
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                Text(user.company, style = MaterialTheme.typography.bodySmall, color = LocalTf.inkFaint)
+                Text(user.company, style = MaterialTheme.typography.bodySmall, color = LocalTf.current.inkFaint)
             }
             if (notice != null) Box(Modifier.padding(horizontal = 16.dp)) { Banner(notice!!) }
             Box(Modifier.weight(1f).fillMaxWidth()) {

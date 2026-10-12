@@ -37,7 +37,7 @@ enum class Tone { Neutral, Positive, Attention, Critical, Info }
 /** Selo retangular (não pílula), como no site. */
 @Composable
 fun Tag(text: String, tone: Tone = Tone.Neutral) {
-    val tf = LocalTf
+    val tf = LocalTf.current
     val (fg, bg) = when (tone) {
         Tone.Neutral -> tf.inkMuted to tf.sunken
         Tone.Positive -> tf.positive to tf.positiveSoft
@@ -56,7 +56,7 @@ fun ScreenHeader(eyebrow: String, title: String, lead: String? = null, trailing:
     Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
-                Text(eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall, color = LocalTf.inkFaint)
+                Text(eyebrow.uppercase(), style = MaterialTheme.typography.labelSmall, color = LocalTf.current.inkFaint)
                 Spacer(Modifier.height(4.dp))
                 Text(title, style = MaterialTheme.typography.headlineMedium)
             }
@@ -88,11 +88,11 @@ fun Ledger(content: @Composable () -> Unit) {
 
 @Composable
 fun Eyebrow(text: String, modifier: Modifier = Modifier) =
-    Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = LocalTf.inkFaint, modifier = modifier.padding(top = 20.dp, bottom = 8.dp))
+    Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = LocalTf.current.inkFaint, modifier = modifier.padding(top = 20.dp, bottom = 8.dp))
 
 @Composable
 fun Banner(text: String, tone: Tone = Tone.Attention) {
-    val tf = LocalTf
+    val tf = LocalTf.current
     val (fg, bg) = when (tone) {
         Tone.Critical -> tf.critical to tf.criticalSoft
         Tone.Info -> tf.info to tf.infoSoft
