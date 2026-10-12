@@ -74,6 +74,39 @@ public sealed class ApiClient
     public async Task<T> PatchAsync<T>(string path, JsonObject body, int ifMatch, CancellationToken ct = default) =>
         Deserialize<T>(await ExecuteAsync("PATCH", path, body, ifMatch, ct: ct));
 
+    /// <summary>
+    /// Baixa um arquivo (caminho da API ou URL absoluta) em streaming. O token só vai para o MESMO servidor da API;
+    /// URL de outro host exige HTTPS e vai sem credencial.
+    /// </summary>
+    public async Task DownloadAsync(string pathOrUrl, Stream destination, IProgress<long>? progress = null, CancellationToken ct = default)
+    {
+        var absolute = Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var abs) && (abs.Scheme == Uri.UriSchemeHttps || abs.Scheme == Uri.UriSchemeHttp);
+        Uri target;
+        if (absolute) target = abs!;
+        else if (pathOrUrl.StartsWith("/api/v1/", StringComparison.Ordinal)) target = new Uri(ApiBase + pathOrUrl["/api/v1".Length..]);
+        else target = new Uri(ApiBase + (pathOrUrl.StartsWith('/') ? "" : "/") + pathOrUrl);
+        var sameHost = Uri.Compare(target, new Uri(ApiBase), UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0;
+        if (!sameHost && target.Scheme != Uri.UriSchemeHttps) throw new ApiException(400, "Download recusado: endereço de outro servidor precisa de HTTPS.");
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var used = sameHost ? _store.Load()?.Access : null;
+            using var req = new HttpRequestMessage(HttpMethod.Get, target);
+            if (used is not null) req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", used);
+            HttpResponseMessage res;
+            try { res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct); }
+            catch (HttpRequestException e) { throw new NetworkException(e); }
+            using (res)
+            {
+                if ((int)res.StatusCode == 401 && sameHost && attempt == 0) { if (!await RefreshAsync(used, ct)) throw new AuthExpiredException(); continue; }
+                if (!res.IsSuccessStatusCode) throw new ApiException((int)res.StatusCode, $"Falha ao baixar o arquivo (HTTP {(int)res.StatusCode}).");
+                await using var src = await res.Content.ReadAsStreamAsync(ct);
+                var buffer = new byte[81920]; long total = 0; int n;
+                while ((n = await src.ReadAsync(buffer, ct)) > 0) { await destination.WriteAsync(buffer.AsMemory(0, n), ct); total += n; progress?.Report(total); }
+                return;
+            }
+        }
+    }
+
     private static T Deserialize<T>(string text) =>
         JsonSerializer.Deserialize<T>(text, JsonOptions) ?? throw new ApiException(500, "Resposta vazia do servidor.");
 
@@ -158,6 +191,7 @@ public sealed class ApiClient
 public static class Api
 {
     public static Task<Dashboard> DashboardAsync(this ApiClient c) => c.GetAsync<Dashboard>("/dashboard");
+    public static Task<UpdateInfo> UpdateInfoAsync(this ApiClient c) => c.GetAsync<UpdateInfo>("/client-updates/windows");
     public static Task<Trend> TrendAsync(this ApiClient c) => c.GetAsync<Trend>("/dashboard/trend");
     public static Task<Insights> InsightsAsync(this ApiClient c) => c.GetAsync<Insights>("/workforce/insights");
     public static Task<List<Job>> JobsAsync(this ApiClient c, string query = "") => c.GetAsync<List<Job>>("/jobs?q=" + Uri.EscapeDataString(query));

@@ -20,6 +20,7 @@ from .workforce_seed import seed_workforce_if_empty
 from .workspace import router as workspace_router
 from .auth_v1 import router as auth_v1_router
 from .sync import router as sync_router
+from .updates import router as updates_router
 from sqlalchemy.orm.exc import StaleDataError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -59,6 +60,7 @@ if os.getenv('APP_ENV','development').lower()!='production' or os.getenv('ENABLE
     app.include_router(workspace_router,include_in_schema=False)
 app.include_router(auth_v1_router)
 app.include_router(sync_router)
+app.include_router(updates_router)
 
 # CORS só para origens explicitamente listadas (ex.: site em outro domínio). Padrão: nenhuma.
 _origins=[o.strip() for o in os.getenv('CORS_ORIGINS','').split(',') if o.strip()]
