@@ -19,7 +19,7 @@ jobs:
     name: policy (sem WebView/Electron/segredos)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Clientes nativos não podem embrulhar o site
         run: bash scripts/check-native-policy.sh
       - name: Nenhum segredo versionado
@@ -38,7 +38,7 @@ jobs:
     env:
       TF_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/talentflow_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: { python-version: '3.12', cache: pip, cache-dependency-path: services/api/requirements-dev.txt }
       - name: Dependências
@@ -73,7 +73,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm, cache-dependency-path: apps/web/package-lock.json }
       - uses: actions/setup-python@v5
@@ -113,7 +113,7 @@ jobs:
     name: "compose (servidor em contêineres - subir, provisionar, backup/restore)"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Configurar .env de teste
         working-directory: infra
         run: |
