@@ -1,0 +1,14 @@
+{
+  "product":"TalentFlow People",
+  "version":"0.4.0",
+  "status":"descriptive_operational_metrics_not_psychometrically_validated",
+  "framework_references":["ISO 30414:2025 https://www.iso.org/standard/30414", "CIPD People Analytics https://www.cipd.org/en/knowledge/factsheets/analytics-factsheet/"],
+  "definitions":[
+    {"id":"active_headcount","label":"Quadro ativo","unit":"employees","numerator":"employees.status='active'","denominator":"all employees in authorized scope","scope":"current","cautions":["snapshot, not historical FTE"]},
+    {"id":"onboarding_completion","label":"Integração concluída","unit":"percent","numerator":"completed onboarding items","denominator":"assigned onboarding items","cautions":["not evidence of integration effectiveness"]},
+    {"id":"learning_completion","label":"Treinamentos concluídos","unit":"percent","numerator":"completed enrollments","denominator":"all enrollments","cautions":["not evidence of knowledge transfer"]},
+    {"id":"goal_attainment","label":"Metas atingidas","unit":"percent","numerator":"goals with actual >= target","denominator":"registered quantitative goals","cautions":["depends on goal fairness and quality"]},
+    {"id":"voluntary_turnover_12m","label":"Rotatividade voluntária 12m","unit":"percent","numerator":"voluntary exits last 365d","denominator":"(opening headcount + closing headcount)/2","cautions":["approximate denominator, monthly average preferred"]},
+    {"id":"retention_90d","label":"Retenção aos 90 dias","unit":"percent","numerator":"eligible hires employed at least 90 days","denominator":"all hires with at least 90 days observation","minimum_cohort":5,"cautions":["not a measure of quality of hire"]}
+  ]
+}

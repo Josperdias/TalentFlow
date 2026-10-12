@@ -1,0 +1,35 @@
+# Local development only. Always use a secure reverse proxy, strong credentials,
+# backups, secrets management and production-grade monitoring for a real deployment.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-talentflow}
+      POSTGRES_USER: ${PGUSER:-talentflow}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?Create a .env file with a strong PGPASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-talentflow} -d ${PGDATABASE:-talentflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${PGUSER:-talentflow}:${PGPASSWORD}@db:5432/${PGDATABASE:-talentflow}
+      APP_ENV: development
+      DEMO_SEED: "true"
+      COOKIE_SECURE: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/private_uploads
+volumes:
+  pg_data:
+  uploads:
