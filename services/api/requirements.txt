@@ -1,6 +1,6 @@
 fastapi>=0.115,<1
 uvicorn>=0.32,<1
-sqlalchemy>=2.0,<3
+sqlalchemy>=2.1.4,<3
 pydantic[email]>=2.10,<3
 python-multipart>=0.0.18
 # For production Postgres: add psycopg[binary]>=3.2
