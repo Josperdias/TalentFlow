@@ -7,7 +7,7 @@ Convenção: "local" = container de desenvolvimento (Ubuntu 24.04, Python 3.13, 
 | Suíte | Casos | Resultado |
 |---|---|---|
 | Herdada da v1.2 (fluxo ATS, People, endurecimento, workspace) | 18 | passam em PostgreSQL 16 real (local e CI) e SQLite |
-| `test_v1_native.py` (novos) | 18 | passam |
+| `test_v1_native.py` (novos) | 18 | passam (total 36) |
 
 Cobertura dos novos casos: login por token; senha errada e cliente desconhecido; cookie x Bearer **não intercambiáveis**; refresh
 rotativo e **detecção de reuso** (derruba a família); logout revoga o dispositivo; listar/revogar sessões; **isolamento entre empresas**
@@ -56,8 +56,12 @@ O CI confere que a integração **não foi pulada** (`skipped == 0`).
 20 casos unitários (incluindo `Theory`) + 3 de **integração contra a API real** (mesmos cenários). Local (.NET 8) e CI (ubuntu).
 
 ## 7. Clientes nativos na interface
-Ver `STATUS.md`: o que o CI conseguiu compilar/abrir e o que ainda **não** foi exercitado em aparelho/emulador/máquina Windows.
+- **Android (CI):** APK de depuração compila e é verificado com `aapt2` (sem WebView). O teste instrumentado Compose
+  (`LoginAndSyncTest`: servidor -> login -> visão geral -> criar vaga pela UI -> vaga criada por **outro cliente** aparece sem recarregar)
+  roda em emulador API 34 contra a API real; **status: ver `STATUS.md`** (estava falhando com timeout de espera; diagnóstico em andamento).
+- **Windows (CI):** publicação, instalador e zip gerados; teste de fumaça abre o app e captura a tela. Sem teste manual.
+- **Compose (CI):** subir, provisionar admin, login, backup, apagar dados, restaurar: verde.
 
 ## 8. Não testado
-Docker Compose local (CI tem o job), Nginx/Apache reais, subpasta real, leitor de tela, axe/Lighthouse, dark mode visual, carga/concorrência
+Docker Compose no ambiente local (o CI tem o job), Nginx/Apache reais, subpasta real, leitor de tela, axe/Lighthouse, dark mode visual, carga/concorrência
 alta, restauração de backup em servidor real, PostgreSQL em outra versão, navegadores além do Chromium, iOS/Safari.

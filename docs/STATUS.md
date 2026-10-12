@@ -7,12 +7,12 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 
 | Entrega | Estado | Evidência |
 |---|---|---|
-| API v1 sobre PostgreSQL | **pronta para teste**; não auditada | 35 testes (PG 16 real e SQLite); CI verde |
+| API v1 sobre PostgreSQL | **pronta para teste**; não auditada | 36 testes (PG 16 real e SQLite); CI verde |
 | Migrações Alembic | **validadas** | subir/`check`/descer/subir; upgrade de banco v1.2 **com dados** |
 | Site (ZIP compilado) | **validado** | E2E 16/16 em Chromium, sobre o ZIP descompactado, API e PG reais (local e CI) |
-| Android nativo (Kotlin/Compose) | ver "Android" abaixo | `:core` testado; APK compilado só no CI |
-| Windows nativo (C#/WinUI 3) | ver "Windows" abaixo | `Core` testado; app compilado só no CI |
-| Servidor em contêineres | exercitado no CI (job `compose`) | veja resultado no CI |
+| Android nativo (Kotlin/Compose) | APK de **depuração** compila no CI; teste de interface em emulador **em diagnóstico** | `:core` testado; ver "Android" |
+| Windows nativo (C#/WinUI 3) | **compila, publica e gera instalador no CI** (não assinado); nunca usado por uma pessoa | `Core` testado; instalador 42 MB + zip portátil 62 MB com SHA-256 (run 38299557063) |
+| Servidor em contêineres | **validado no CI** (job `compose`: subir, provisionar admin, login, backup, apagar, restaurar) | CI verde |
 | GitHub: CI, release (rascunho), auto-merge | workflows prontos e executando | **proteção de `main` NÃO configurada** (ver pendências) |
 | Releases publicadas | **nenhuma** | nada foi publicado; a Release nasce como rascunho |
 | Site publicado no seu domínio | **não** | você ainda não informou domínio nem hospedagem |
@@ -21,7 +21,7 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 
 | Teste | Quantidade / resultado | Ambiente |
 |---|---|---|
-| API pytest (18 herdados + 17 novos) | 35 aprovados | PostgreSQL 16.15 local e GitHub `ubuntu-latest` + serviço PG 16; também SQLite |
+| API pytest (18 herdados + 18 novos) | 36 aprovados | PostgreSQL 16.15 local e GitHub `ubuntu-latest` + serviço PG 16; também SQLite |
 | Baseline v1.2 antes de mexer | 18/18 em SQLite; **em PostgreSQL passou a rodar de verdade só agora** (o `conftest` forçava SQLite) | local |
 | Alembic | `0001` (schema v1.2) -> `0002`; ciclo completo; `alembic check` sem deriva | PG 16 local e CI |
 | Produção (`APP_ENV=production`) | recusa subir sem migrações; sem HTML, sem `/workspace`, sem contas demo; login do 1º admin criado por script | local |
@@ -43,11 +43,16 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 - R8/minify está desligado até haver teste em aparelho. `minSdk 26` (Android 8.0), `targetSdk 35`.
 
 ## Windows
-- **Feito e testado:** `TalentFlow.Core` (mesmos cenários do Kotlin).
-- **Escrito, compilação só no CI (`windows-latest`):** app WinUI 3 *unpackaged*, autossuficiente, interface em C# com os tokens do design system,
-  tokens de sessão cifrados com DPAPI, instalador Inno Setup. Não há WebView2/Electron (verificado por script).
-- **Nunca executado por mim.** O workflow tenta abrir o app e capturar a tela, mas isso **não** substitui teste manual.
-- Sem certificado de código: o instalador **não é assinado** e o SmartScreen avisará "editor desconhecido".
+- **Feito e testado:** `TalentFlow.Core` (mesmos cenários do Kotlin), local e CI.
+- **Compilado no CI (`windows-latest`)** — app WinUI 3 *unpackaged*, autossuficiente, interface em C# com os tokens do design system,
+  tokens de sessão cifrados com DPAPI. Resultado do run 38299557063: publicação OK; instalador Inno Setup
+  `TalentFlow-Setup-v1.3.0-rc.1.exe` (42 MB) e pacote portátil `.zip` (62 MB) gerados, cada um com `.sha256`.
+- **Sem navegador embutido:** nosso código não referencia WebView2/Electron (varredura de fontes limpa). O `Microsoft.Web.WebView2.*` que
+  aparece em metadados vem da projeção do Windows App SDK; os binários do WebView2 são removidos do pacote e o app ainda abre.
+- **Teste de fumaça:** o workflow abre o app, captura a tela e fecha (passo marcado `continue-on-error`; uma captura foi anexada ao
+  artefato). Eu **não vi** essa captura (o ambiente não consegue baixar artefatos) e isso **não** substitui teste manual.
+- **Nunca usado por uma pessoa, nem contra um servidor real pela interface.** Sem certificado de código: o instalador **não é
+  assinado** e o SmartScreen avisará "editor desconhecido".
 
 ## Parcial, simulado ou ausente (inventário honesto)
 
@@ -59,7 +64,7 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 | Offline com fila de mutações | **não** (por desenho: mostra "sem conexão") |
 | Row-Level Security no PostgreSQL | **não**; isolamento só na aplicação (coberto por testes) |
 | MFA, retenção automática de dados, direitos do titular (LGPD) | **não** |
-| `/api/public/jobs` mostra vagas abertas de **todas** as empresas | **não corrigido**; precisa de decisão de produto (página de carreiras por empresa) |
+| `/api/v1/public/jobs` | **corrigido**: exige o slug da empresa; uma empresa não lista as vagas das outras (a rota antiga `/api/public/jobs` segue só em desenvolvimento) |
 | Competências/GAP, ciclos 90/180/360, calibração, mobilidade, questionários, governança | **não migrados** (existiam só no snapshot JSONB v1.1) |
 | People Analytics com coortes, catálogo de fórmulas e drill-down | **parcial**: boletim e funil reais; sem coortes |
 | Entrevistas, scorecards, propostas, onboarding, currículos | **só na API**; sem tela nos três clientes |
