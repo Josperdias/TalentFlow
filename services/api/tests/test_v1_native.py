@@ -185,3 +185,18 @@ def test_candidate_cannot_read_change_feed(boot):
     cand,_=native('candidato@nexa.demo')
     assert cand.get('/api/v1/changes').status_code==403
     assert cand.get('/api/v1/changes/cursor').status_code==403
+
+
+def test_public_jobs_are_scoped_per_company_in_v1(boot):
+    c=TestClient(app)
+    assert c.get('/api/v1/public/jobs').status_code==422          # sem empresa: não lista tudo
+    from sqlalchemy import select
+    from app.database import SessionLocal
+    from app.models import Company
+    with SessionLocal() as db:
+        slugs={x.slug:x.id for x in db.scalars(select(Company)).all()}
+    nexa=c.get('/api/v1/public/jobs',params={'company':next(s for s in slugs if 'nexa' in s)}).json()
+    orbe=c.get('/api/v1/public/jobs',params={'company':next(s for s in slugs if 'orbe' in s)}).json()
+    assert nexa and all(j['company']==nexa[0]['company'] for j in nexa)
+    assert not ({j['id'] for j in nexa} & {j['id'] for j in orbe})
+    assert c.get('/api/v1/public/jobs',params={'company':'inexistente'}).json()==[]

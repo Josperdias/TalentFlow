@@ -528,9 +528,21 @@ def reports(user:User=Depends(allowed(*ROLE_VIEW)),db:Session=Depends(get_db)):
     return dashboard(user,db)
 
 @app.get('/api/public/jobs')
-def public_jobs(db:Session=Depends(get_db)):
-    rows=db.scalars(select(Job,).where(Job.status=='open').order_by(Job.created_at.desc())).all()
-    return [{'id':j.id,'title':j.title,'company':db.get(Company,j.company_id).name,'location':j.location,'modality':j.modality,'department':j.department,'description':j.description,'requirements':j.requirements,'benefits':j.benefits} for j in rows]
+def public_jobs(request:Request,company:str='',db:Session=Depends(get_db)):
+    """Página de carreiras. Na v1 é POR EMPRESA (slug obrigatório): uma empresa não vê as vagas das outras.
+    O caminho legado /api/public/jobs sem filtro continua só para a interface v1.1 de desenvolvimento."""
+    stmt=select(Job).where(Job.status=='open').order_by(Job.created_at.desc())
+    if request.url.path.startswith('/api/v1/'):
+        if not company.strip():raise HTTPException(422,'Informe a empresa (parâmetro company)')
+        owner=db.scalar(select(Company).where(Company.slug==company.strip().lower()))
+        if not owner:return []
+        stmt=stmt.where(Job.company_id==owner.id)
+    elif company.strip():
+        owner=db.scalar(select(Company).where(Company.slug==company.strip().lower()))
+        stmt=stmt.where(Job.company_id==(owner.id if owner else -1))
+    rows=db.scalars(stmt).all()
+    names={c.id:c.name for c in db.scalars(select(Company)).all()}
+    return [{'id':j.id,'title':j.title,'company':names.get(j.company_id,''),'location':j.location,'modality':j.modality,'department':j.department,'description':j.description,'requirements':j.requirements,'benefits':j.benefits} for j in rows]
 class PublicApply(BaseModel):
     job_id:int
     name:str=Field(min_length=3,max_length=200)

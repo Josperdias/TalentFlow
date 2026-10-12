@@ -3168,7 +3168,20 @@
     },
     "/api/v1/public/jobs": {
       "get": {
+        "description": "Página de carreiras. Na v1 é POR EMPRESA (slug obrigatório): uma empresa não vê as vagas das outras.\nO caminho legado /api/public/jobs sem filtro continua só para a interface v1.1 de desenvolvimento.",
         "operationId": "public_jobs_v1_api_v1_public_jobs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Company",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3177,6 +3190,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Public Jobs V1",

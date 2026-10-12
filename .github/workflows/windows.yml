@@ -86,13 +86,24 @@ jobs:
       - name: Sem navegador embutido (nosso código não referencia; binários não usados são removidos)
         shell: pwsh
         run: |
-          # 1) Os assemblies que NÓS escrevemos não podem referenciar nenhum controle/engine de navegador.
-          foreach ($f in 'TalentFlow.dll','TalentFlow.Core.dll') {
-            $bytes = [System.IO.File]::ReadAllBytes("dist/windows-publish/$f")
-            $text = [System.Text.Encoding]::ASCII.GetString($bytes)
-            if ($text -match 'WebView|CoreWebView2|Electron|Chromium') { throw "$f referencia componente de navegador" }
-            "OK: $f não referencia WebView/Electron/Chromium."
+          # 1) Os assemblies que NÓS escrevemos não podem REFERENCIAR (assembly ou tipo) nenhum navegador embutido.
+          #    Leitura precisa dos metadados do .NET (AssemblyRef/TypeRef), não busca de texto.
+          $refs = foreach ($f in 'TalentFlow.dll','TalentFlow.Core.dll') {
+            $stream = [System.IO.File]::OpenRead((Resolve-Path "dist/windows-publish/$f").Path)
+            $pe = [System.Reflection.PortableExecutable.PEReader]::new($stream)
+            $md = [System.Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($pe)
+            foreach ($h in $md.AssemblyReferences) { [pscustomobject]@{ File = $f; Kind = 'assembly'; Name = $md.GetString($md.GetAssemblyReference($h).Name) } }
+            foreach ($h in $md.TypeReferences) { $r = $md.GetTypeReference($h); [pscustomobject]@{ File = $f; Kind = 'type'; Name = ('{0}.{1}' -f $md.GetString($r.Namespace), $md.GetString($r.Name)) } }
+            $pe.Dispose(); $stream.Dispose()
           }
+          "Referências inspecionadas (assemblies + tipos): $($refs.Count)"
+          $refs | Where-Object { $_.Kind -eq 'assembly' } | Sort-Object Name -Unique | ForEach-Object { "  assembly: $($_.File) -> $($_.Name)" }
+          $hits = $refs | Where-Object { $_.Name -match 'WebView|Electron|Chromium|Cef' }
+          if ($hits) { $hits | Format-Table | Out-String; throw "Nosso código referencia componente de navegador" }
+          "OK: TalentFlow.dll e TalentFlow.Core.dll não referenciam WebView/Electron/Chromium."
+          # Diagnóstico (informativo): onde o texto aparece nos metadados gerados pelo XAML, se aparecer.
+          $text = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes('dist/windows-publish/TalentFlow.dll'))
+          [regex]::Matches($text, '.{0,30}(WebView|Electron|Chromium).{0,30}') | Select-Object -First 5 | ForEach-Object { "  (texto nos metadados) " + ($_.Value -replace '[^\x20-\x7E]', '.') }
           # 2) O Windows App SDK distribui o WebView2 como dependência do controle opcional, que o app não usa.
           #    Removemos esses binários do pacote (o teste de fumaça abaixo confirma que o app abre sem eles).
           $unused = Get-ChildItem dist/windows-publish -Recurse | Where-Object { $_.Name -match 'WebView2' }
