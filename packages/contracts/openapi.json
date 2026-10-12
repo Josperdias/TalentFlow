@@ -1913,9 +1913,20 @@
         ]
       }
     },
-    "/api/v1/client-updates/windows": {
+    "/api/v1/client-updates/{platform}": {
       "get": {
-        "operationId": "windows_update_api_v1_client_updates_windows_get",
+        "operationId": "update_info_api_v1_client_updates__platform__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "platform",
+            "required": true,
+            "schema": {
+              "title": "Platform",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -1924,18 +1935,37 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
-        "summary": "Atualização disponível para o aplicativo Windows",
+        "summary": "Atualização disponível para o aplicativo (windows ou android)",
         "tags": [
           "Atualizações"
         ]
       }
     },
-    "/api/v1/client-updates/windows/download/{filename}": {
+    "/api/v1/client-updates/{platform}/download/{filename}": {
       "get": {
-        "operationId": "windows_download_api_v1_client_updates_windows_download__filename__get",
+        "operationId": "update_download_api_v1_client_updates__platform__download__filename__get",
         "parameters": [
+          {
+            "in": "path",
+            "name": "platform",
+            "required": true,
+            "schema": {
+              "title": "Platform",
+              "type": "string"
+            }
+          },
           {
             "in": "path",
             "name": "filename",
@@ -1966,7 +1996,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Baixa o instalador publicado (somente o do manifesto)",
+        "summary": "Baixa o instalável publicado (somente o do manifesto/release)",
         "tags": [
           "Atualizações"
         ]

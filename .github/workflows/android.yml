@@ -41,12 +41,15 @@ jobs:
         run: |
           pip install -r requirements.txt
           alembic upgrade head
-          APP_ENV=development DEMO_SEED=true SERVE_LEGACY_WEB=false TF_LOGIN_IP_LIMIT=100000 \
+          # Atualização "publicada" de mentira (v99.0.0) para provar manifesto -> download autenticado -> SHA-256 de ponta a ponta.
+          mkdir -p /tmp/updates && head -c 300000 /dev/urandom > /tmp/updates/talentflow-android-v99.0.0.apk
+          printf '{"version":"99.0.0","file":"talentflow-android-v99.0.0.apk","sha256":"%s","notes":"teste"}' "$(sha256sum /tmp/updates/talentflow-android-v99.0.0.apk | cut -d' ' -f1)" > /tmp/updates/android.json
+          TF_UPDATES_DIR=/tmp/updates APP_ENV=development DEMO_SEED=true SERVE_LEGACY_WEB=false TF_LOGIN_IP_LIMIT=100000 \
             nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/api.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/api/v1/health && break; sleep 1; done
       - name: Testes do :core (inclui RealApiTest contra a API real)
         working-directory: apps/android
-        env: { TF_API_URL: 'http://127.0.0.1:8000' }
+        env: { TF_API_URL: 'http://127.0.0.1:8000', TF_EXPECT_UPDATE: '1' }
         run: ./gradlew -PcoreOnly=true :core:test --console=plain
       - name: Conferir que a integração real NÃO foi pulada
         working-directory: apps/android
@@ -57,7 +60,7 @@ jobs:
           m = re.search(r'tests="(\d+)" skipped="(\d+)" failures="(\d+)" errors="(\d+)"', s)
           t, sk, f, e = map(int, m.groups())
           print(f'RealApiTest: testes={t} pulados={sk} falhas={f} erros={e}')
-          assert t >= 3 and sk == 0 and f == 0 and e == 0
+          assert t >= 4 and sk == 0 and f == 0 and e == 0
           PY
       - uses: actions/upload-artifact@v4
         if: always()
@@ -105,6 +108,14 @@ jobs:
           cp "$APK" "talentflow-android-v$(cat VERSION)-debug.apk"
           sha256sum "talentflow-android-v$(cat VERSION)-debug.apk" | tee "talentflow-android-v$(cat VERSION)-debug.apk.sha256"
           if [ -f "talentflow-android-v$(cat VERSION).apk" ]; then sha256sum "talentflow-android-v$(cat VERSION).apk" | tee "talentflow-android-v$(cat VERSION).apk.sha256"; fi
+      - name: Manifesto de atualização (android.json) para o seu servidor
+        run: |
+          APK=$(ls talentflow-android-v*.apk | grep -v -- '-debug.apk' | head -1 || true)
+          [ -z "$APK" ] && APK=$(ls talentflow-android-v*-debug.apk | head -1)
+          SHA=$(sha256sum "$APK" | cut -d' ' -f1)
+          CHANNEL=release; case "$APK" in *-debug.apk) CHANNEL=debug;; esac
+          printf '{"version":"%s","file":"%s","sha256":"%s","channel":"%s","notes":"TalentFlow People %s"}\n' "$(cat VERSION)" "$APK" "$SHA" "$CHANNEL" "$(cat VERSION)" > android.json
+          cat android.json
       - uses: actions/upload-artifact@v4
         with:
           name: talentflow-android-debug
@@ -113,6 +124,7 @@ jobs:
             talentflow-android-v*-debug.apk.sha256
             talentflow-android-v*.apk
             talentflow-android-v*.apk.sha256
+            android.json
 
   ui-emulator:
     name: ui (app no emulador + API real - login, criar vaga, sincronizar)

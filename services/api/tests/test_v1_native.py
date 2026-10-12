@@ -239,3 +239,44 @@ def test_client_updates_self_hosted_manifest(boot, tmp_path, monkeypatch):
     assert c.get('/api/v1/client-updates/windows').json()['available'] is False  # SHA não confere
     (tmp_path/'windows.json').write_text(json.dumps({'version':'9.9.9','file':'../../etc/passwd','sha256':sha}))
     assert c.get('/api/v1/client-updates/windows').json()['available'] is False  # nome de arquivo inválido
+
+
+def test_client_updates_android_dir_and_github_source(boot, tmp_path, monkeypatch):
+    """Android pela pasta própria e pelas Releases do GitHub (rede simulada): rascunho ignorado, maior versão vence, SHA-256 do .sha256, download em streaming."""
+    import hashlib, io, json
+    from app import updates
+    c,_=native()
+    monkeypatch.delenv('TF_UPDATES_DIR',raising=False); monkeypatch.delenv('TF_UPDATES_GITHUB_REPO',raising=False)
+    assert c.get('/api/v1/client-updates/android').json()['available'] is False
+    assert c.get('/api/v1/client-updates/ios').status_code==404
+    # --- pasta própria
+    blob=b'PK-apk-de-teste'*50; sha=hashlib.sha256(blob).hexdigest()
+    (tmp_path/'talentflow-android-v2.0.0.apk').write_bytes(blob)
+    (tmp_path/'android.json').write_text(json.dumps({'version':'2.0.0','file':'talentflow-android-v2.0.0.apk','sha256':sha,'channel':'release'}))
+    monkeypatch.setenv('TF_UPDATES_DIR',str(tmp_path))
+    r=c.get('/api/v1/client-updates/android').json()
+    assert r['available'] and r['source']=='dir' and r['version']=='2.0.0'
+    assert c.get(r['url']).content==blob
+    monkeypatch.delenv('TF_UPDATES_DIR')
+    # --- GitHub (simulado)
+    apk=b'PK-github-apk'*40; apk_sha=hashlib.sha256(apk).hexdigest()
+    def asset(name,size=0): return {'name':name,'size':size,'url':'https://api.github.com/a/'+name,'browser_download_url':'https://github.com/x/'+name}
+    releases=[
+      {'tag_name':'v9.0.0','draft':True,'prerelease':False,'assets':[asset('talentflow-android-v9.0.0.apk'),asset('talentflow-android-v9.0.0.apk.sha256')]},
+      {'tag_name':'v1.4.0-rc.1','draft':False,'prerelease':True,'body':'notas rc1','assets':[asset('talentflow-android-v1.4.0-rc.1-debug.apk',len(apk)),asset('talentflow-android-v1.4.0-rc.1-debug.apk.sha256')]},
+      {'tag_name':'v1.4.0-rc.2','draft':False,'prerelease':True,'body':'notas rc2','assets':[asset('talentflow-android-v1.4.0-rc.2-debug.apk',len(apk)),asset('talentflow-android-v1.4.0-rc.2-debug.apk.sha256')]},
+    ]
+    monkeypatch.setattr(updates,'_gh_get_json',lambda url: releases)
+    class R(io.BytesIO):
+        def __enter__(self): return self
+        def __exit__(self,*a): return False
+    def fake_open(a): return R((apk_sha+'  x.apk\n').encode() if a['name'].endswith('.sha256') else apk)
+    monkeypatch.setattr(updates,'_gh_open_asset',fake_open)
+    monkeypatch.setenv('TF_UPDATES_GITHUB_REPO','dono/repo')
+    r=c.get('/api/v1/client-updates/android').json()
+    assert r['available'] and r['source']=='github' and r['version']=='1.4.0-rc.2' and r['channel']=='debug' and r['sha256']==apk_sha
+    d=c.get(r['url']); assert d.status_code==200 and d.content==apk
+    assert c.get('/api/v1/client-updates/android/download/talentflow-android-v1.4.0-rc.1-debug.apk').status_code==404  # só a mais nova
+    monkeypatch.setenv('TF_UPDATES_PRERELEASES','false')
+    assert c.get('/api/v1/client-updates/android').json()['available'] is False  # só havia pré-lançamentos e rascunho
+    assert updates.version_key('1.3.0-rc.2')<updates.version_key('1.3.0-rc.10')<updates.version_key('1.3.0')

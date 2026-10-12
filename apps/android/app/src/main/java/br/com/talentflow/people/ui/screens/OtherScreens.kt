@@ -230,6 +230,8 @@ fun AccountScreen(vm: AppViewModel, user: User) {
         Eyebrow("Aplicativo", Modifier.padding(top = 4.dp))
         Text("TalentFlow People ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
         Text(server ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = { vm.checkUpdate(force = true) { message = it } }) { Text("Verificar atualizações") }
         Eyebrow("Sessões ativas")
         StateView(sessions, onRetry = { vm.sessions.refresh() }) { list ->
             list.forEach { s ->

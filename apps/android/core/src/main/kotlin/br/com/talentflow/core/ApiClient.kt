@@ -1,6 +1,9 @@
 package br.com.talentflow.core
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
@@ -85,6 +88,45 @@ class ApiClient(
     suspend fun <T> patch(path: String, body: JsonObject, ser: KSerializer<T>, ifMatch: Int): T =
         json.decodeFromString(ser, execute("PATCH", path, body, ifMatch))
 
+    /**
+     * Baixa um arquivo (caminho da API ou URL absoluta) em streaming. O token só vai para o MESMO servidor da API;
+     * URL de outro host exige HTTPS e vai sem credencial.
+     */
+    suspend fun download(pathOrUrl: String, sink: java.io.OutputStream, onProgress: (Long) -> Unit = {}) {
+        val target = when {
+            pathOrUrl.startsWith("https://") || pathOrUrl.startsWith("http://") -> pathOrUrl
+            pathOrUrl.startsWith("/api/v1/") -> apiBase + pathOrUrl.removePrefix("/api/v1")
+            else -> apiBase + (if (pathOrUrl.startsWith("/")) "" else "/") + pathOrUrl
+        }
+        val base = apiBase.toHttpUrl(); val url = target.toHttpUrl()
+        val sameHost = url.scheme == base.scheme && url.host == base.host && url.port == base.port
+        if (!sameHost && url.scheme != "https") throw ApiException(400, "Download recusado: endereço de outro servidor precisa de HTTPS.")
+        for (attempt in 0..1) {
+            val used = if (sameHost) store.load()?.access else null
+            val builder = Request.Builder().url(url)
+            if (used != null) builder.header("Authorization", "Bearer $used")
+            val response = try { withContext(Dispatchers.IO) { http.newCall(builder.build()).execute() } } catch (e: IOException) { throw NetworkException(e) }
+            if (response.code == 401 && sameHost && attempt == 0) {
+                response.close()
+                if (!refresh(used)) throw AuthExpiredException()
+                continue
+            }
+            response.use { r ->
+                if (!r.isSuccessful) throw ApiException(r.code, "Falha ao baixar o arquivo (HTTP ${r.code}).")
+                withContext(Dispatchers.IO) {
+                    r.body!!.byteStream().use { src ->
+                        val buffer = ByteArray(64 * 1024); var total = 0L
+                        while (true) {
+                            val n = src.read(buffer); if (n < 0) break
+                            sink.write(buffer, 0, n); total += n; onProgress(total)
+                        }
+                    }
+                }
+            }
+            return
+        }
+    }
+
     // ---- núcleo ----
     internal suspend fun execute(
         method: String, path: String, body: JsonObject?, ifMatch: Int?,
@@ -159,6 +201,7 @@ class ApiClient(
 // ---- operações de domínio (mesmos endpoints do site e do Windows) ----
 suspend fun ApiClient.dashboard() = get("/dashboard", Dashboard.serializer())
 suspend fun ApiClient.trend() = get("/dashboard/trend", Trend.serializer())
+suspend fun ApiClient.updateInfo(platform: String = "android") = get("/client-updates/$platform", UpdateInfo.serializer())
 suspend fun ApiClient.insights() = get("/workforce/insights", Insights.serializer())
 suspend fun ApiClient.jobs(query: String = "") = list("/jobs?q=${java.net.URLEncoder.encode(query, "UTF-8")}", Job.serializer())
 suspend fun ApiClient.jobDetail(id: Int) = get("/jobs/$id", JobDetail.serializer())
