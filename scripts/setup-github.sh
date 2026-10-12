@@ -17,6 +17,7 @@ gh api -X PUT "repos/$REPO/branches/main/protection" --input - <<'JSON'
       "policy (sem WebView/Electron/segredos)",
       "api (PostgreSQL 16)",
       "web (build, testes, E2E em navegador)",
+      "compose (servidor em contêineres - subir, provisionar, backup/restore)",
       "core (testes unitários + integração com API real)",
       "apk (debug nativo Kotlin/Compose)",
       "core C# (testes unitários + integração com API real)",

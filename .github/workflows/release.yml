@@ -1,0 +1,60 @@
+name: release
+
+# Gera um RASCUNHO de GitHub Release com TODOS os artefatos, depois que ci, android e windows passarem.
+# Nunca publica sozinho: a publicação final (tirar de rascunho) é uma decisão humana explícita.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a publicar (ex.: v1.3.0-rc.1). Deve coincidir com o arquivo VERSION.'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  ci:      { uses: ./.github/workflows/ci.yml,      secrets: inherit }
+  android: { uses: ./.github/workflows/android.yml, secrets: inherit }
+  windows: { uses: ./.github/workflows/windows.yml, secrets: inherit }
+
+  draft:
+    name: rascunho da release
+    needs: [ci, android, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conferir tag x VERSION
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          test "$TAG" = "v$(cat VERSION)" || { echo "A tag $TAG não coincide com VERSION ($(cat VERSION))"; exit 1; }
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+      - name: Reunir arquivos e checksums
+        run: |
+          mkdir release && find artifacts -type f \( -name '*.apk' -o -name '*.exe' -o -name '*.zip' -o -name '*.sha256' \) -exec cp {} release/ \;
+          cd release && sha256sum -c *.sha256 && ls -l
+          sha256sum *.apk *.exe *.zip > SHA256SUMS.txt
+      - name: Notas da versão
+        run: |
+          {
+            echo "## TalentFlow People $TAG"
+            echo
+            echo "Pré-lançamento. Leia \`docs/STATUS.md\` para o que está pronto, o que é parcial e o que não foi feito."
+            echo
+            echo "| Arquivo | Para quê |"
+            echo "|---|---|"
+            ls release | grep -v sha256 | sed 's/^/| `/; s/$/` | ver README |/'
+            echo
+            echo "Verifique a integridade com \`SHA256SUMS.txt\`. O instalador do Windows e o APK de depuração **não são assinados** (veja STATUS)."
+          } > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: TalentFlow People ${{ env.TAG }}
+          body_path: notes.md
+          draft: true
+          prerelease: ${{ contains(env.TAG, '-rc') }}
+          files: release/*

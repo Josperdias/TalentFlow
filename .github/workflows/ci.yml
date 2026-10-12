@@ -5,6 +5,7 @@ on:
     branches: ['**']
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -109,7 +110,7 @@ jobs:
             docs/screenshots/*.png
 
   compose:
-    name: compose (servidor em contêineres: subir, provisionar, backup/restore)
+    name: "compose (servidor em contêineres - subir, provisionar, backup/restore)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

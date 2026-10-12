@@ -7,6 +7,7 @@ on:
   pull_request:
     paths: ['apps/windows/**', 'packages/design-tokens/**', 'VERSION', '.github/workflows/windows.yml']
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: windows-${{ github.ref }}
