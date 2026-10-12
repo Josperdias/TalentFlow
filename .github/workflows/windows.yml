@@ -145,7 +145,7 @@ jobs:
             "$h  $($_.Name)" | Out-File -FilePath "$($_.FullName).sha256" -Encoding ascii
             "$($_.Name)  $([int]($_.Length/1MB)) MB  sha256=$h"
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: talentflow-windows
           path: |

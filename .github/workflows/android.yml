@@ -59,7 +59,7 @@ jobs:
           print(f'RealApiTest: testes={t} pulados={sk} falhas={f} erros={e}')
           assert t >= 3 and sk == 0 and f == 0 and e == 0
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: core-test-reports, path: apps/android/core/build/reports/tests/test }
 
@@ -105,7 +105,7 @@ jobs:
           cp "$APK" "talentflow-android-v$(cat VERSION)-debug.apk"
           sha256sum "talentflow-android-v$(cat VERSION)-debug.apk" | tee "talentflow-android-v$(cat VERSION)-debug.apk.sha256"
           if [ -f "talentflow-android-v$(cat VERSION).apk" ]; then sha256sum "talentflow-android-v$(cat VERSION).apk" | tee "talentflow-android-v$(cat VERSION).apk.sha256"; fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: talentflow-android-debug
           path: |
@@ -169,7 +169,7 @@ jobs:
       - name: Logs da API (em caso de falha)
         if: always()
         run: tail -40 /tmp/api.log || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: android-ui-screenshots

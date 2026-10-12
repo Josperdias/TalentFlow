@@ -101,7 +101,7 @@ jobs:
         run: |
           rm -rf /tmp/zip-site && mkdir /tmp/zip-site && unzip -q dist/talentflow-web-v*.zip -d /tmp/zip-site
           bash scripts/e2e-web.sh /tmp/zip-site docs/screenshots
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: talentflow-web
           path: |
