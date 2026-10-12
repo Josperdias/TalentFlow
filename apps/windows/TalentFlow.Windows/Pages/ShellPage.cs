@@ -8,12 +8,16 @@ namespace TalentFlow.Windows.Pages;
 public sealed class ShellPage : Page
 {
     private readonly NavigationView _nav = new();
-    private readonly Frame _content = new();
+    private readonly ContentControl _content = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+
+    /// <summary>Shell ativo (para páginas abrirem outras páginas no painel de conteúdo).</summary>
+    public static ShellPage? Current { get; private set; }
     private readonly TextBlock _status = new() { FontSize = 12 };
     private readonly Microsoft.UI.Xaml.Shapes.Ellipse _dot = new() { Width = 8, Height = 8, VerticalAlignment = VerticalAlignment.Center };
 
     public ShellPage()
     {
+        Current = this;
         var user = AppState.User!;
         Background = Ui.Brush("canvas");
         _nav.PaneDisplayMode = NavigationViewPaneDisplayMode.Left;
@@ -72,13 +76,15 @@ public sealed class ShellPage : Page
 
     private void Go(string tag)
     {
-        var page = tag switch
+        Show(tag switch
         {
-            "overview" => typeof(OverviewPage), "jobs" => typeof(JobsPage), "candidates" => typeof(CandidatesPage),
-            "people" => typeof(PeoplePage), "portal" => typeof(PortalPage), _ => typeof(AccountPage)
-        };
-        _content.Navigate(page);
+            "overview" => (Page)new OverviewPage(), "jobs" => new JobsPage(), "candidates" => new CandidatesPage(),
+            "people" => new PeoplePage(), "portal" => new PortalPage(), _ => new AccountPage()
+        });
     }
+
+    /// <summary>Troca a página do painel de conteúdo (sem Frame: as páginas são criadas em código).</summary>
+    public void Show(Page page) => _content.Content = page;
 }
 
 public static class Roles

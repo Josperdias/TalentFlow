@@ -27,7 +27,7 @@ public sealed class JobsPage : TfPage
         root.Children.Add(Ui.PageHeader("Recrutamento", "Vagas", "Requisições e vagas com seus pipelines.", actions));
 
         var search = new TextBox { Header = "Buscar por título", Text = _query, Width = 320, HorizontalAlignment = HorizontalAlignment.Left };
-        search.KeyDown += async (_, k) => { if (k.Key == Windows.System.VirtualKey.Enter) { _query = search.Text; await ReloadAsync(); } };
+        search.KeyDown += async (_, k) => { if (k.Key == global::Windows.System.VirtualKey.Enter) { _query = search.Text; await ReloadAsync(); } };
         root.Children.Add(search);
 
         if (shown.Count == 0) { root.Children.Add(Ui.Empty("Nenhuma vaga encontrada", canEdit ? "Crie a primeira vaga para iniciar um processo seletivo." : "Não há vagas atribuídas a você.")); return root; }
@@ -40,7 +40,7 @@ public sealed class JobsPage : TfPage
             var row = Row();
             var code = Ui.Text(j.Code, 12, "inkMuted"); code.FontFamily = Ui.Mono;
             var open = new HyperlinkButton { Content = j.Title, Padding = new Thickness(0), FontWeight = Microsoft.UI.Text.FontWeights.Medium };
-            var id = j.Id; open.Click += (_, _) => Frame.Navigate(typeof(JobDetailPage), id);
+            var id = j.Id; open.Click += (_, _) => ShellPage.Current?.Show(new JobDetailPage(id));
             Put(row, 0, code); Put(row, 1, open); Put(row, 2, Ui.Text(j.Department, 13)); Put(row, 3, Ui.Text($"{j.Location} · {j.Modality}", 13));
             Put(row, 4, Ui.Tag(label, tone)); var n = Ui.Text(j.Applications.ToString(), 13); n.TextAlignment = TextAlignment.Right; Put(row, 5, n);
             grid.Children.Add(row);

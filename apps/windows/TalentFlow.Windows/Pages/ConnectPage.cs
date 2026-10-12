@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
 using TalentFlow.Windows.Services;
 
 namespace TalentFlow.Windows.Pages;
@@ -11,8 +10,9 @@ public sealed class ConnectPage : Page
     private readonly StackPanel _form = new() { Spacing = 14, MaxWidth = 380 };
     private string? _message;
 
-    public ConnectPage()
+    public ConnectPage(string? message = null)
     {
+        _message = message;
         Background = Ui.Brush("canvas");
         var art = new StackPanel { Spacing = 16, VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(56), Background = Ui.Brush("brandStrong") };
         art.Children.Add(new TextBlock { Text = "TALENTFLOW PEOPLE", FontFamily = Ui.Mono, FontSize = 12, CharacterSpacing = 100, Foreground = Ui.Brush("onBrand") });
@@ -25,8 +25,6 @@ public sealed class ConnectPage : Page
         Content = grid;
         Loaded += (_, _) => Render();
     }
-
-    protected override void OnNavigatedTo(NavigationEventArgs e) => _message = e.Parameter as string;
 
     private void Render()
     {
@@ -50,7 +48,7 @@ public sealed class ConnectPage : Page
             if (err is null) Render(); else error.Children.Add(Ui.Banner(err, "", "critical"));
         }
         go.Click += (_, _) => Submit();
-        address.KeyDown += (_, k) => { if (k.Key == Windows.System.VirtualKey.Enter) Submit(); };
+        address.KeyDown += (_, k) => { if (k.Key == global::Windows.System.VirtualKey.Enter) Submit(); };
         _form.Children.Add(address); _form.Children.Add(error); _form.Children.Add(go);
     }
 
@@ -71,7 +69,7 @@ public sealed class ConnectPage : Page
             if (err is null) App.MainWindow?.ShowShell(); else error.Children.Add(Ui.Banner(err, "", "critical"));
         }
         go.Click += (_, _) => Submit();
-        password.KeyDown += (_, k) => { if (k.Key == Windows.System.VirtualKey.Enter) Submit(); };
+        password.KeyDown += (_, k) => { if (k.Key == global::Windows.System.VirtualKey.Enter) Submit(); };
         var change = new HyperlinkButton { Content = "Alterar servidor" };
         change.Click += async (_, _) => { await AppState.ChangeServerAsync(); _message = null; Render(); };
         _form.Children.Add(email); _form.Children.Add(password); _form.Children.Add(error); _form.Children.Add(go);

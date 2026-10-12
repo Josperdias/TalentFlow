@@ -16,7 +16,7 @@ public sealed class CandidatesPage : TfPage
         var root = new StackPanel { Spacing = 8 };
         root.Children.Add(Ui.PageHeader("Recrutamento", "Candidatos", "Você só vê pessoas ligadas às vagas que pode acessar."));
         var search = new TextBox { Header = "Buscar por nome, cargo ou habilidade (Enter)", Text = _query, Width = 360, HorizontalAlignment = HorizontalAlignment.Left };
-        search.KeyDown += async (_, k) => { if (k.Key == Windows.System.VirtualKey.Enter) { _query = search.Text; await ReloadAsync(); } };
+        search.KeyDown += async (_, k) => { if (k.Key == global::Windows.System.VirtualKey.Enter) { _query = search.Text; await ReloadAsync(); } };
         root.Children.Add(search);
         if (list.Count == 0) { root.Children.Add(Ui.Empty("Nenhum candidato encontrado")); return root; }
         var rows = new StackPanel();

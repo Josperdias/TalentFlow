@@ -19,7 +19,7 @@ public static class Ui
     public static readonly FontFamily Serif = new("Georgia");
     public static readonly FontFamily Mono = new("Cascadia Mono, Consolas");
 
-    public static TextBlock Text(string text, double size = 14, string color = "ink", Windows.UI.Text.FontWeight? weight = null, bool wrap = true) =>
+    public static TextBlock Text(string text, double size = 14, string color = "ink", global::Windows.UI.Text.FontWeight? weight = null, bool wrap = true) =>
         new() { Text = text, FontSize = size, Foreground = Brush(color), FontWeight = weight ?? FontWeights.Normal, TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap };
 
     public static TextBlock Eyebrow(string text) =>

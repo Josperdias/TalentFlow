@@ -1,6 +1,5 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
 using TalentFlow.Core;
 using TalentFlow.Windows.Services;
 
@@ -9,11 +8,11 @@ namespace TalentFlow.Windows.Pages;
 /// <summary>Pipeline da vaga. Mover candidatura e editar usam If-Match: conflito vira diálogo, nunca sobrescreve.</summary>
 public sealed class JobDetailPage : TfPage
 {
-    private int _jobId;
+    private readonly int _jobId;
     private Job? _opened;            // versão em que a edição foi aberta (presa à versão vista)
     protected override string[] Entities => ["job", "application", "job_stage", "interview", "scorecard"];
 
-    protected override void OnNavigatedTo(NavigationEventArgs e) { _jobId = e.Parameter is int id ? id : 0; base.OnNavigatedTo(e); }
+    public JobDetailPage(int jobId) { _jobId = jobId; }
 
     protected override async Task<UIElement> BuildAsync()
     {
@@ -25,7 +24,7 @@ public sealed class JobDetailPage : TfPage
 
         var root = new StackPanel { Spacing = 8 };
         var back = new HyperlinkButton { Content = "‹ Vagas", Padding = new Thickness(0) };
-        back.Click += (_, _) => Frame.Navigate(typeof(JobsPage));
+        back.Click += (_, _) => ShellPage.Current?.Show(new JobsPage());
         root.Children.Add(back);
         var actions = new List<UIElement> { Ui.Tag(label, tone) };
         if (canEdit) actions.Add(Ui.SecondaryButton("Editar título", async () => await EditAsync(job)));
