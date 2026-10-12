@@ -1,0 +1,22 @@
+# Acrescenta o Caddy (site + HTTPS automático) ao docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+# Exige no .env: SITE_ADDRESS (seu domínio) e TRUSTED_ORIGINS=https://SEU-DOMINIO. Portas 80 e 443 abertas no servidor.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Defina SITE_ADDRESS no arquivo .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv/site:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+volumes:
+  caddy_data:
+  caddy_config:
