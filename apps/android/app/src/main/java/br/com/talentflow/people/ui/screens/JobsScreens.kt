@@ -87,7 +87,7 @@ fun JobsScreen(vm: AppViewModel, user: User, onOpen: (Int) -> Unit) {
             if (jobs.isEmpty()) EmptyState("Nenhuma vaga encontrada", if (canEdit(user)) "Crie a primeira vaga para iniciar um processo seletivo." else "Não há vagas atribuídas a você.")
             else {
                 val topId = jobs.first().id
-                LaunchedEffect(topId) { if (pinnedToTop) listState.scrollToItem(0) }
+                LaunchedEffect(topId) { if (pinnedToTop) listState.requestScrollToItem(0) }
                 LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(jobs, key = { it.id }) { job -> JobRow(job) { onOpen(job.id) } }
                 }
