@@ -1,0 +1,12 @@
+{
+  "_aviso": "Somente NOMES. Os valores você cola no GitHub (Settings > Secrets and variables > Actions). Nunca no chat, no repositório ou no Drive.",
+  "secrets": {
+    "TF_KEYSTORE_BASE64": "keystore do Android em base64 (ver docs/GITHUB-CONFIGURACAO.md)",
+    "TF_KEYSTORE_PASSWORD": "senha do keystore",
+    "TF_KEY_ALIAS": "alias da chave",
+    "TF_KEY_PASSWORD": "senha da chave"
+  },
+  "variables": {
+    "PUBLIC_WEB_URL": "endereço do SEU site, ex. https://rh.suaempresa.com.br (você define)"
+  }
+}

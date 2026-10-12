@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -27,11 +28,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.talentflow.core.ApplicationRow
@@ -63,6 +66,16 @@ fun JobsScreen(vm: AppViewModel, user: User, onOpen: (Int) -> Unit) {
     val load = rememberLoad(vm.jobs)
     var query by rememberSaveable { mutableStateOf("") }
     var creating by rememberSaveable { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    // A lista vem do mais novo para o mais antigo. O LazyColumn "segue" o item que estava no topo pela chave,
+    // então uma vaga nova (nossa ou criada por outro cliente) entrava ACIMA da área visível e ficava escondida.
+    // Quem estava no topo continua vendo o topo; quem rolou para baixo não é puxado de volta.
+    var pinnedToTop by remember { mutableStateOf(true) }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.collect { moving ->
+            if (!moving) pinnedToTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        }
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         ScreenHeader("Recrutamento", "Vagas", "Requisições e vagas com seus pipelines.") {
             if (canEdit(user)) Button(onClick = { creating = true }) { Text("Nova vaga") }
@@ -72,12 +85,16 @@ fun JobsScreen(vm: AppViewModel, user: User, onOpen: (Int) -> Unit) {
         StateView(load, onRetry = { vm.jobs.refresh() }) { all ->
             val jobs = all.filter { it.title.contains(query, ignoreCase = true) }
             if (jobs.isEmpty()) EmptyState("Nenhuma vaga encontrada", if (canEdit(user)) "Crie a primeira vaga para iniciar um processo seletivo." else "Não há vagas atribuídas a você.")
-            else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(jobs, key = { it.id }) { job -> JobRow(job) { onOpen(job.id) } }
+            else {
+                val topId = jobs.first().id
+                LaunchedEffect(topId) { if (pinnedToTop) listState.scrollToItem(0) }
+                LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(jobs, key = { it.id }) { job -> JobRow(job) { onOpen(job.id) } }
+                }
             }
         }
     }
-    if (creating) NewJobDialog(vm, onDismiss = { creating = false })
+    if (creating) NewJobDialog(vm, onCreated = { pinnedToTop = true }, onDismiss = { creating = false })
 }
 
 @Composable
@@ -96,7 +113,7 @@ private fun JobRow(job: Job, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NewJobDialog(vm: AppViewModel, onDismiss: () -> Unit) {
+private fun NewJobDialog(vm: AppViewModel, onCreated: () -> Unit, onDismiss: () -> Unit) {
     var title by rememberSaveable { mutableStateOf("") }
     var dept by rememberSaveable { mutableStateOf("") }
     var place by rememberSaveable { mutableStateOf("") }
@@ -123,7 +140,7 @@ private fun NewJobDialog(vm: AppViewModel, onDismiss: () -> Unit) {
                 busy = true; error = null
                 vm.createJob(title.trim(), dept.trim(), place.trim(), status) { r ->
                     busy = false
-                    when (r) { is ActionResult.Success -> onDismiss(); is ActionResult.Failure -> error = r.message; is ActionResult.Conflict -> error = r.message }
+                    when (r) { is ActionResult.Success -> { onCreated(); onDismiss() }; is ActionResult.Failure -> error = r.message; is ActionResult.Conflict -> error = r.message }
                 }
             }) { Text(if (busy) "Salvando…" else "Criar vaga") }
         },
