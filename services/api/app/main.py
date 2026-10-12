@@ -54,7 +54,9 @@ app=FastAPI(title='TalentFlow People API',version='1.0.0',lifespan=lifespan,docs
 for _router in (lifecycle_router,workforce_router):
     app.include_router(_router,prefix='/api',include_in_schema=False)
     app.include_router(_router,prefix='/api/v1')
-app.include_router(workspace_router,include_in_schema=False)
+# Snapshot JSONB da v1.1 (somente admin): legado. Desligado em produção, salvo ENABLE_LEGACY_WORKSPACE=true.
+if os.getenv('APP_ENV','development').lower()!='production' or os.getenv('ENABLE_LEGACY_WORKSPACE','false').lower()=='true':
+    app.include_router(workspace_router,include_in_schema=False)
 app.include_router(auth_v1_router)
 app.include_router(sync_router)
 

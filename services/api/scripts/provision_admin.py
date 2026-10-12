@@ -6,7 +6,8 @@ Usage (within the project):
 from argparse import ArgumentParser
 from getpass import getpass
 from sqlalchemy import select
-from app.database import SessionLocal, init_db
+from app.database import SessionLocal, engine
+from sqlalchemy import inspect
 from app.models import Company, User
 from app.security import hash_password
 
@@ -20,7 +21,8 @@ def run():
     password=getpass('Nova senha (>= 14 caracteres): ')
     if len(password)<14 or len(p.slug)>90 or '@' not in p.email:
         raise SystemExit('Dados inválidos ou senha muito curta')
-    init_db()
+    if not inspect(engine).has_table('alembic_version'):
+        raise SystemExit('Banco sem migrações. Execute antes: alembic upgrade head')
     with SessionLocal() as db:
         company=db.scalar(select(Company).where(Company.slug==p.slug.lower().strip()))
         if not company:

@@ -1,0 +1,109 @@
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    name: policy (sem WebView/Electron/segredos)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clientes nativos não podem embrulhar o site
+        run: bash scripts/check-native-policy.sh
+      - name: Nenhum segredo versionado
+        run: bash scripts/check-no-secrets.sh
+
+  api:
+    name: api (PostgreSQL 16)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: talentflow_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      TF_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/talentflow_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12', cache: pip, cache-dependency-path: services/api/requirements-dev.txt }
+      - name: Dependências
+        working-directory: services/api
+        run: pip install -r requirements-dev.txt
+      - name: Migrações Alembic (subir, conferir deriva, descer e subir de novo)
+        working-directory: services/api
+        env: { DATABASE_URL: 'postgresql+psycopg://postgres:postgres@localhost:5432/postgres' }
+        run: |
+          psql "postgresql://postgres:postgres@localhost:5432/postgres" -c "create database mig_check"
+          export DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/mig_check
+          alembic upgrade head
+          alembic check
+          alembic downgrade base
+          alembic upgrade head
+      - name: Testes da API em PostgreSQL
+        working-directory: services/api
+        run: python -m pytest -q
+      - name: Contrato OpenAPI sem deriva
+        run: |
+          python scripts/export-openapi.py
+          git diff --exit-code packages/contracts/openapi.json
+
+  web:
+    name: web (build, testes, E2E em navegador)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm, cache-dependency-path: apps/web/package-lock.json }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Tokens de design sem deriva
+        run: |
+          node packages/design-tokens/build.mjs
+          git diff --exit-code apps packages
+      - name: Typecheck, testes e build
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Pacote ZIP
+        run: bash scripts/package-web.sh
+      - name: Dependências do E2E
+        run: |
+          pip install -r services/api/requirements.txt playwright alembic "psycopg[binary]"
+          playwright install --with-deps chromium
+      - name: E2E do ZIP descompactado (Chromium -> servidor estático -> API -> PostgreSQL)
+        env:
+          TF_E2E_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          rm -rf /tmp/zip-site && mkdir /tmp/zip-site && unzip -q dist/talentflow-web-v*.zip -d /tmp/zip-site
+          bash scripts/e2e-web.sh /tmp/zip-site docs/screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talentflow-web
+          path: |
+            dist/talentflow-web-v*.zip
+            dist/talentflow-web-v*.zip.sha256
+            docs/screenshots/*.png

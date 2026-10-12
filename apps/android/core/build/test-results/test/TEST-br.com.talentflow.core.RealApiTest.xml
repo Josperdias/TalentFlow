@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="br.com.talentflow.core.RealApiTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-12T19:03:53" hostname="vm" time="1.99">
+  <properties/>
+  <testcase name="criar no aparelho A aparece no aparelho B e conflito e detectado" classname="br.com.talentflow.core.RealApiTest" time="1.25"/>
+  <testcase name="refresh real rotaciona e sessao revogada exige novo login" classname="br.com.talentflow.core.RealApiTest" time="0.315"/>
+  <testcase name="login real, leitura autorizada e isolamento entre empresas" classname="br.com.talentflow.core.RealApiTest" time="0.424"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
