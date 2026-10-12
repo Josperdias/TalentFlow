@@ -15,6 +15,7 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "talentflow-android"
+if (coreOnly) rootProject.buildFileName = "build-core.gradle.kts"
 include(":core")
 // O módulo Android depende do SDK/AGP (dl.google.com). Sem acesso, compile só o :core:  ./gradlew -PcoreOnly=true :core:test
 if (!coreOnly) include(":app")
