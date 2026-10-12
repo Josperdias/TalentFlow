@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client';
 import type { ApplicationRow, Job, JobDetail as Detail, Stage } from '../api/types';
 import { useAuth, useResource } from '../state';
 import { ConflictDialog, Empty, ErrorState, Field, Modal, PageHead, Skeleton, Tag } from '../components/ui';
+import { Avatar } from '../components/viz';
 import { fitLabel, fmtDate, JOB_STATUS } from '../format';
 
 export default function JobDetail() {
@@ -67,12 +68,11 @@ export default function JobDetail() {
             return (
               <section key={stage.id} role="listitem" className={`col${over === stage.id ? ' over' : ''}`} aria-label={`${stage.name}: ${apps.length} candidatura(s)`}
                 onDragOver={e => { if (canMove) { e.preventDefault(); setOver(stage.id); } }} onDragLeave={() => setOver(null)} onDrop={canMove ? onDrop(stage) : undefined}>
-                <header><span>{stage.name}</span><span className="muted num">{apps.length}</span></header>
+                <header><span className="col-name"><i className="col-dot" />{stage.name}</span><span className="muted num">{apps.length}</span></header>
                 <ul>
                   {apps.map(a => (
                     <li key={a.id} className="card" draggable={canMove} onDragStart={e => e.dataTransfer.setData('text/plain', String(a.id))}>
-                      <b>{a.candidate.name}</b>
-                      <span className="muted" style={{ fontSize: 12 }}>{a.candidate.title || a.candidate.location || '—'}</span>
+                      <div className="card-top"><Avatar name={a.candidate.name} size={34} /><div><b>{a.candidate.name}</b><span className="muted">{a.candidate.title || a.candidate.location || '—'}</span></div></div>
                       <span><Tag tone={a.fit >= 75 ? 'positive' : a.fit >= 50 ? 'info' : ''}>Fit {fitLabel(a.fit)} · {a.fit}</Tag></span>
                       {canMove && (
                         <label className="field"><span className="sr-only">Mover {a.candidate.name} para</span>

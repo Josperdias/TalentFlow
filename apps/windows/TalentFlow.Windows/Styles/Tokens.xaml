@@ -3,27 +3,35 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.ThemeDictionaries>
   <ResourceDictionary x:Key="Light">
-    <Color x:Key="TfCanvasColor">#FFF4F5F2</Color>
+    <Color x:Key="TfCanvasColor">#FFF3F4FA</Color>
     <Color x:Key="TfSurfaceColor">#FFFFFFFF</Color>
-    <Color x:Key="TfSunkenColor">#FFE9ECE8</Color>
-    <Color x:Key="TfLineColor">#FFD5DAD4</Color>
-    <Color x:Key="TfLineStrongColor">#FF788580</Color>
-    <Color x:Key="TfInkColor">#FF142120</Color>
-    <Color x:Key="TfInkMutedColor">#FF4C5B57</Color>
-    <Color x:Key="TfInkFaintColor">#FF56645F</Color>
-    <Color x:Key="TfBrandColor">#FF0B4F5C</Color>
-    <Color x:Key="TfBrandStrongColor">#FF073A44</Color>
-    <Color x:Key="TfBrandSoftColor">#FFDAE9EA</Color>
+    <Color x:Key="TfSunkenColor">#FFECEEF8</Color>
+    <Color x:Key="TfLineColor">#FFE1E4F0</Color>
+    <Color x:Key="TfLineStrongColor">#FF7C86A6</Color>
+    <Color x:Key="TfInkColor">#FF141B34</Color>
+    <Color x:Key="TfInkMutedColor">#FF48527A</Color>
+    <Color x:Key="TfInkFaintColor">#FF586285</Color>
+    <Color x:Key="TfBrandColor">#FF5846D4</Color>
+    <Color x:Key="TfBrandStrongColor">#FF4333B3</Color>
+    <Color x:Key="TfBrandSoftColor">#FFECE9FF</Color>
     <Color x:Key="TfOnBrandColor">#FFFFFFFF</Color>
-    <Color x:Key="TfAttentionColor">#FF85570F</Color>
-    <Color x:Key="TfAttentionSoftColor">#FFF3E7CF</Color>
-    <Color x:Key="TfPositiveColor">#FF256B49</Color>
-    <Color x:Key="TfPositiveSoftColor">#FFDCEBE2</Color>
-    <Color x:Key="TfCriticalColor">#FFA5342A</Color>
-    <Color x:Key="TfCriticalSoftColor">#FFF4DCD8</Color>
-    <Color x:Key="TfInfoColor">#FF2A6390</Color>
-    <Color x:Key="TfInfoSoftColor">#FFDCE8F2</Color>
-    <Color x:Key="TfFocusColor">#FF0B6FD6</Color>
+    <Color x:Key="TfAccentColor">#FF8B6CF0</Color>
+    <Color x:Key="TfAttentionColor">#FF8A5A12</Color>
+    <Color x:Key="TfAttentionSoftColor">#FFFBEFD9</Color>
+    <Color x:Key="TfPositiveColor">#FF12694D</Color>
+    <Color x:Key="TfPositiveSoftColor">#FFDDF3EA</Color>
+    <Color x:Key="TfCriticalColor">#FFB0364B</Color>
+    <Color x:Key="TfCriticalSoftColor">#FFFBE3E7</Color>
+    <Color x:Key="TfInfoColor">#FF2A63A8</Color>
+    <Color x:Key="TfInfoSoftColor">#FFE0ECFA</Color>
+    <Color x:Key="TfFocusColor">#FF2F6BFF</Color>
+    <Color x:Key="TfNavColor">#FF0E1530</Color>
+    <Color x:Key="TfNavRaisedColor">#FF18214A</Color>
+    <Color x:Key="TfNavInkColor">#FFDCE1F7</Color>
+    <Color x:Key="TfNavMutedColor">#FF98A3CC</Color>
+    <Color x:Key="TfNavLineColor">#FF26305E</Color>
+    <Color x:Key="TfNavActiveColor">#FF2B2F7A</Color>
+    <Color x:Key="TfNavActiveInkColor">#FFFFFFFF</Color>
     <SolidColorBrush x:Key="TfCanvasBrush" Color="{StaticResource TfCanvasColor}" />
     <SolidColorBrush x:Key="TfSurfaceBrush" Color="{StaticResource TfSurfaceColor}" />
     <SolidColorBrush x:Key="TfSunkenBrush" Color="{StaticResource TfSunkenColor}" />
@@ -36,6 +44,7 @@
     <SolidColorBrush x:Key="TfBrandStrongBrush" Color="{StaticResource TfBrandStrongColor}" />
     <SolidColorBrush x:Key="TfBrandSoftBrush" Color="{StaticResource TfBrandSoftColor}" />
     <SolidColorBrush x:Key="TfOnBrandBrush" Color="{StaticResource TfOnBrandColor}" />
+    <SolidColorBrush x:Key="TfAccentBrush" Color="{StaticResource TfAccentColor}" />
     <SolidColorBrush x:Key="TfAttentionBrush" Color="{StaticResource TfAttentionColor}" />
     <SolidColorBrush x:Key="TfAttentionSoftBrush" Color="{StaticResource TfAttentionSoftColor}" />
     <SolidColorBrush x:Key="TfPositiveBrush" Color="{StaticResource TfPositiveColor}" />
@@ -45,29 +54,44 @@
     <SolidColorBrush x:Key="TfInfoBrush" Color="{StaticResource TfInfoColor}" />
     <SolidColorBrush x:Key="TfInfoSoftBrush" Color="{StaticResource TfInfoSoftColor}" />
     <SolidColorBrush x:Key="TfFocusBrush" Color="{StaticResource TfFocusColor}" />
+    <SolidColorBrush x:Key="TfNavBrush" Color="{StaticResource TfNavColor}" />
+    <SolidColorBrush x:Key="TfNavRaisedBrush" Color="{StaticResource TfNavRaisedColor}" />
+    <SolidColorBrush x:Key="TfNavInkBrush" Color="{StaticResource TfNavInkColor}" />
+    <SolidColorBrush x:Key="TfNavMutedBrush" Color="{StaticResource TfNavMutedColor}" />
+    <SolidColorBrush x:Key="TfNavLineBrush" Color="{StaticResource TfNavLineColor}" />
+    <SolidColorBrush x:Key="TfNavActiveBrush" Color="{StaticResource TfNavActiveColor}" />
+    <SolidColorBrush x:Key="TfNavActiveInkBrush" Color="{StaticResource TfNavActiveInkColor}" />
   </ResourceDictionary>
   <ResourceDictionary x:Key="Dark">
-    <Color x:Key="TfCanvasColor">#FF0D1514</Color>
-    <Color x:Key="TfSurfaceColor">#FF142120</Color>
-    <Color x:Key="TfSunkenColor">#FF0A1110</Color>
-    <Color x:Key="TfLineColor">#FF26373A</Color>
-    <Color x:Key="TfLineStrongColor">#FF5F7B80</Color>
-    <Color x:Key="TfInkColor">#FFE8EEEC</Color>
-    <Color x:Key="TfInkMutedColor">#FFA8B8B3</Color>
-    <Color x:Key="TfInkFaintColor">#FF8A9C97</Color>
-    <Color x:Key="TfBrandColor">#FF5BB6C4</Color>
-    <Color x:Key="TfBrandStrongColor">#FF8ACFDA</Color>
-    <Color x:Key="TfBrandSoftColor">#FF143A41</Color>
-    <Color x:Key="TfOnBrandColor">#FF06262C</Color>
-    <Color x:Key="TfAttentionColor">#FFE0AE5B</Color>
-    <Color x:Key="TfAttentionSoftColor">#FF3A2E16</Color>
-    <Color x:Key="TfPositiveColor">#FF6FC49A</Color>
-    <Color x:Key="TfPositiveSoftColor">#FF17342A</Color>
-    <Color x:Key="TfCriticalColor">#FFF0958B</Color>
-    <Color x:Key="TfCriticalSoftColor">#FF401D19</Color>
-    <Color x:Key="TfInfoColor">#FF7FB4DE</Color>
-    <Color x:Key="TfInfoSoftColor">#FF15303F</Color>
-    <Color x:Key="TfFocusColor">#FF7DB8FF</Color>
+    <Color x:Key="TfCanvasColor">#FF090E20</Color>
+    <Color x:Key="TfSurfaceColor">#FF111937</Color>
+    <Color x:Key="TfSunkenColor">#FF0C1230</Color>
+    <Color x:Key="TfLineColor">#FF232C58</Color>
+    <Color x:Key="TfLineStrongColor">#FF6B79AA</Color>
+    <Color x:Key="TfInkColor">#FFE9ECFA</Color>
+    <Color x:Key="TfInkMutedColor">#FFB2BAD9</Color>
+    <Color x:Key="TfInkFaintColor">#FF98A2C8</Color>
+    <Color x:Key="TfBrandColor">#FFA99CFF</Color>
+    <Color x:Key="TfBrandStrongColor">#FFC4BAFF</Color>
+    <Color x:Key="TfBrandSoftColor">#FF241F5E</Color>
+    <Color x:Key="TfOnBrandColor">#FF150F4A</Color>
+    <Color x:Key="TfAccentColor">#FF8B6CF0</Color>
+    <Color x:Key="TfAttentionColor">#FFE7B568</Color>
+    <Color x:Key="TfAttentionSoftColor">#FF3A2C14</Color>
+    <Color x:Key="TfPositiveColor">#FF6FD3AA</Color>
+    <Color x:Key="TfPositiveSoftColor">#FF10352A</Color>
+    <Color x:Key="TfCriticalColor">#FFF59BAB</Color>
+    <Color x:Key="TfCriticalSoftColor">#FF42171F</Color>
+    <Color x:Key="TfInfoColor">#FF86B6EE</Color>
+    <Color x:Key="TfInfoSoftColor">#FF14305A</Color>
+    <Color x:Key="TfFocusColor">#FF8FB0FF</Color>
+    <Color x:Key="TfNavColor">#FF070B1B</Color>
+    <Color x:Key="TfNavRaisedColor">#FF111937</Color>
+    <Color x:Key="TfNavInkColor">#FFDCE1F7</Color>
+    <Color x:Key="TfNavMutedColor">#FF98A3CC</Color>
+    <Color x:Key="TfNavLineColor">#FF1D264F</Color>
+    <Color x:Key="TfNavActiveColor">#FF2B2F7A</Color>
+    <Color x:Key="TfNavActiveInkColor">#FFFFFFFF</Color>
     <SolidColorBrush x:Key="TfCanvasBrush" Color="{StaticResource TfCanvasColor}" />
     <SolidColorBrush x:Key="TfSurfaceBrush" Color="{StaticResource TfSurfaceColor}" />
     <SolidColorBrush x:Key="TfSunkenBrush" Color="{StaticResource TfSunkenColor}" />
@@ -80,6 +104,7 @@
     <SolidColorBrush x:Key="TfBrandStrongBrush" Color="{StaticResource TfBrandStrongColor}" />
     <SolidColorBrush x:Key="TfBrandSoftBrush" Color="{StaticResource TfBrandSoftColor}" />
     <SolidColorBrush x:Key="TfOnBrandBrush" Color="{StaticResource TfOnBrandColor}" />
+    <SolidColorBrush x:Key="TfAccentBrush" Color="{StaticResource TfAccentColor}" />
     <SolidColorBrush x:Key="TfAttentionBrush" Color="{StaticResource TfAttentionColor}" />
     <SolidColorBrush x:Key="TfAttentionSoftBrush" Color="{StaticResource TfAttentionSoftColor}" />
     <SolidColorBrush x:Key="TfPositiveBrush" Color="{StaticResource TfPositiveColor}" />
@@ -89,10 +114,19 @@
     <SolidColorBrush x:Key="TfInfoBrush" Color="{StaticResource TfInfoColor}" />
     <SolidColorBrush x:Key="TfInfoSoftBrush" Color="{StaticResource TfInfoSoftColor}" />
     <SolidColorBrush x:Key="TfFocusBrush" Color="{StaticResource TfFocusColor}" />
+    <SolidColorBrush x:Key="TfNavBrush" Color="{StaticResource TfNavColor}" />
+    <SolidColorBrush x:Key="TfNavRaisedBrush" Color="{StaticResource TfNavRaisedColor}" />
+    <SolidColorBrush x:Key="TfNavInkBrush" Color="{StaticResource TfNavInkColor}" />
+    <SolidColorBrush x:Key="TfNavMutedBrush" Color="{StaticResource TfNavMutedColor}" />
+    <SolidColorBrush x:Key="TfNavLineBrush" Color="{StaticResource TfNavLineColor}" />
+    <SolidColorBrush x:Key="TfNavActiveBrush" Color="{StaticResource TfNavActiveColor}" />
+    <SolidColorBrush x:Key="TfNavActiveInkBrush" Color="{StaticResource TfNavActiveInkColor}" />
   </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
-  <x:Double x:Key="TfRowHeight">36</x:Double>
-  <x:Double x:Key="TfRailWidth">232</x:Double>
-  <CornerRadius x:Key="TfRadiusMd">4</CornerRadius>
-  <CornerRadius x:Key="TfRadiusSm">2</CornerRadius>
+  <x:Double x:Key="TfRowHeight">44</x:Double>
+  <x:Double x:Key="TfRailWidth">248</x:Double>
+  <CornerRadius x:Key="TfRadiusMd">10</CornerRadius>
+  <CornerRadius x:Key="TfRadiusSm">6</CornerRadius>
+  <CornerRadius x:Key="TfRadiusLg">14</CornerRadius>
+  <CornerRadius x:Key="TfRadiusXl">20</CornerRadius>
 </ResourceDictionary>

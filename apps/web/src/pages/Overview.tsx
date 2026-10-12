@@ -3,6 +3,8 @@ import { api } from '../api/client';
 import type { Dashboard, Insights } from '../api/types';
 import { useAuth, useResource } from '../state';
 import { Empty, ErrorState, PageHead, Skeleton } from '../components/ui';
+import { Icon } from '../components/icons';
+import { Donut, Kpi } from '../components/viz';
 
 const fmtLong = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -26,60 +28,79 @@ export default function Overview() {
   if (i && i.pending_leaves > 0) attention.push({ to: '/ausencias', text: `${i.pending_leaves} solicitação(ões) de ausência pendente(s)` });
   if (m.pending_tasks > 0) attention.push({ to: '/vagas', text: `${m.pending_tasks} tarefa(s) de seleção em aberto` });
 
+  const status = [
+    { label: 'Ativas', value: m.candidates_active, color: '#5846D4' },
+    { label: 'Contratadas', value: m.hired, color: '#12906A' },
+    { label: 'Reprovadas', value: m.rejected, color: '#C0506A' }
+  ];
+  const statusTotal = status.reduce((a, x) => a + x.value, 0);
+
   return (
     <>
       <PageHead eyebrow={fmtLong.format(new Date())} title={`Olá, ${user?.name.split(' ')[0]}`} lead="Situação atual da sua empresa, calculada a partir dos registros do servidor." />
-      <div className="briefing">
-        <section aria-labelledby="h-rec">
-          <h2 id="h-rec" className="eyebrow">Recrutamento</h2>
-          <table className="ledger">
-            <tbody>
-              <tr><th scope="row">Vagas abertas</th><td className="fig">{m.jobs_open}</td><td className="note">{m.jobs_approval} em aprovação</td></tr>
-              <tr><th scope="row">Candidaturas ativas</th><td className="fig">{m.candidates_active}</td><td className="note">{m.interviews} entrevista(s) agendada(s)</td></tr>
-              <tr><th scope="row">Contratações</th><td className="fig">{m.hired}</td><td className="note">{m.rejected} reprovação(ões) registradas</td></tr>
-              <tr><th scope="row">Tempo até contratar</th><td className="fig">{orDash(m.avg_time_hire, m.hired === 0)}</td><td className="note">{m.hired === 0 ? 'Sem contratações para calcular' : 'dias, média das contratações registradas'}</td></tr>
-              <tr><th scope="row">Conversão</th><td className="fig">{m.candidates_active + m.hired + m.rejected === 0 ? '—' : `${m.conversion}%`}</td><td className="note">contratados ÷ candidaturas totais</td></tr>
-            </tbody>
-          </table>
 
-          {staff && (
-            <>
-              <h2 className="eyebrow" style={{ marginTop: 32 }}>Pessoas</h2>
-              {ins.error && !i ? <ErrorState error={ins.error} onRetry={ins.reload} /> : !i ? <Skeleton rows={3} /> : (
-                <table className="ledger">
-                  <tbody>
-                    <tr><th scope="row">Colaboradores ativos</th><td className="fig">{i.active}</td><td className="note">de {i.population} registrados</td></tr>
-                    <tr><th scope="row">Planos de desenvolvimento concluídos</th><td className="fig">{i.development_completion.denominator === 0 ? '—' : `${i.development_completion.numerator}/${i.development_completion.denominator}`}</td><td className="note">{i.development_completion.interpretation}</td></tr>
-                    <tr><th scope="row">Ausências pendentes</th><td className="fig">{i.pending_leaves}</td><td className="note">aguardando decisão</td></tr>
-                  </tbody>
-                </table>
-              )}
-            </>
+      <section aria-labelledby="h-rec">
+        <h2 id="h-rec" className="eyebrow">Recrutamento</h2>
+        <div className="kpis">
+          <Kpi delay={0} icon="jobs" label="Vagas abertas" value={m.jobs_open} note={`${m.jobs_approval} em aprovação`} />
+          <Kpi delay={60} icon="people" tone="info" label="Candidaturas ativas" value={m.candidates_active} note={`${m.interviews} entrevista(s) agendada(s)`} />
+          <Kpi delay={120} icon="check" tone="positive" label="Contratações" value={m.hired} note={`${m.rejected} reprovação(ões) registradas`} />
+          <Kpi delay={180} icon="clock" tone="attention" label="Tempo até contratar" value={orDash(m.avg_time_hire, m.hired === 0)} note={m.hired === 0 ? 'Sem contratações para calcular' : 'dias, média das contratações registradas'} />
+          <Kpi delay={240} icon="trend" label="Conversão" value={m.candidates_active + m.hired + m.rejected === 0 ? '—' : `${m.conversion}%`} note="contratados ÷ candidaturas totais" />
+        </div>
+      </section>
+
+      {staff && (
+        <section aria-labelledby="h-pes" className="section">
+          <h2 id="h-pes" className="eyebrow">Pessoas</h2>
+          {ins.error && !i ? <ErrorState error={ins.error} onRetry={ins.reload} /> : !i ? <Skeleton rows={3} /> : (
+            <div className="kpis three">
+              <Kpi delay={0} icon="team" label="Colaboradores ativos" value={i.active} note={`de ${i.population} registrados`} />
+              <Kpi delay={60} icon="plan" tone="positive" label="Planos de desenvolvimento concluídos" value={i.development_completion.denominator === 0 ? '—' : `${i.development_completion.numerator}/${i.development_completion.denominator}`} note={i.development_completion.interpretation} />
+              <Kpi delay={120} icon="leave" tone="attention" label="Ausências pendentes" value={i.pending_leaves} note="aguardando decisão" />
+            </div>
           )}
         </section>
+      )}
 
-        <aside aria-label="Funil e atenção">
-          <h2 className="eyebrow">Funil de candidaturas por etapa</h2>
+      <div className="split section">
+        <section className="panel" aria-labelledby="h-fun">
+          <h2 id="h-fun" className="panel-title">Funil de candidaturas por etapa</h2>
           {dash.data!.stages.length === 0 ? <Empty title="Sem candidaturas">Cadastre uma vaga e receba candidaturas para ver o funil.</Empty> : (
             <div className="bars" role="list">
-              {dash.data!.stages.map(s => (
+              {dash.data!.stages.map((s, n) => (
                 <div className="bar-row" role="listitem" key={s.name}>
                   <span>{s.name}</span>
-                  <div className="bar-track" aria-hidden="true"><div className="bar-fill" style={{ width: `${(s.value / maxStage) * 100}%` }} /></div>
+                  <div className="bar-track" aria-hidden="true"><div className="bar-fill" style={{ width: `${(s.value / maxStage) * 100}%`, animationDelay: `${n * 70}ms` }} /></div>
                   <span className="num">{s.value}</span>
                 </div>
               ))}
             </div>
           )}
-          <h2 className="eyebrow" style={{ marginTop: 32 }}>Requer atenção</h2>
-          {attention.length === 0 ? <p className="muted">Nada pendente no momento.</p> : (
-            <ul style={{ paddingLeft: 18, margin: 0, display: 'grid', gap: 6 }}>
-              {attention.map(a => <li key={a.text}><Link to={a.to}>{a.text}</Link></li>)}
-            </ul>
-          )}
-          {i && i.limits.length > 0 && <p className="faint" style={{ marginTop: 32, fontSize: 12 }}>{i.limits.join(' · ')}</p>}
-        </aside>
+        </section>
+
+        <div className="stack-col">
+          <section className="panel" aria-labelledby="h-sta">
+            <h2 id="h-sta" className="panel-title">Situação das candidaturas</h2>
+            <div className="donut-row">
+              <Donut slices={status} centerLabel="candidaturas" />
+              <ul className="legend">
+                {status.map(x => <li key={x.label}><i style={{ background: x.color }} /><span>{x.label}</span><b className="num">{x.value}</b><small className="faint">{statusTotal === 0 ? '—' : `${Math.round((x.value / statusTotal) * 100)}%`}</small></li>)}
+              </ul>
+            </div>
+          </section>
+
+          <section className="panel" aria-labelledby="h-att">
+            <h2 id="h-att" className="panel-title">Requer atenção</h2>
+            {attention.length === 0 ? <p className="muted">Nada pendente no momento.</p> : (
+              <ul className="attention-list">
+                {attention.map(a => <li key={a.text}><Link to={a.to}><span className="ico"><Icon name="alert" size={16} /></span><span>{a.text}</span><Icon name="arrow" size={16} /></Link></li>)}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
+      {i && i.limits.length > 0 && <p className="faint foot-note">{i.limits.join(' · ')}</p>}
     </>
   );
 }

@@ -82,6 +82,7 @@ jobs:
         run: |
           node packages/design-tokens/build.mjs
           git diff --exit-code apps packages
+          node packages/design-tokens/check-contrast.mjs
       - name: Typecheck, testes e build
         working-directory: apps/web
         run: |

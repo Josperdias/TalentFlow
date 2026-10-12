@@ -56,7 +56,7 @@ def run_desktop(browser):
         page.goto(SITE + '/'); expect(page.get_by_role('heading', name='Entrar')).to_be_visible()
         page.get_by_role('button', name='Diagnosticar conexão com a API').click()
         expect(page.get_by_text('API respondendo em /api/v1')).to_be_visible(timeout=8000)
-        page.screenshot(path=SHOTS / 'web-1440-login.png')
+        page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-login.png')
     _()
 
     @step('senha errada mostra erro útil e não entra')
@@ -68,7 +68,7 @@ def run_desktop(browser):
     def _():
         login_ui(page); expect(page.get_by_role('heading', name=re.compile('Olá, Marina'))).to_be_visible(timeout=10000)
         expect(page.get_by_text('Vagas abertas')).to_be_visible(); expect(page.get_by_text('Funil de candidaturas por etapa')).to_be_visible()
-        page.wait_for_timeout(600); page.screenshot(path=SHOTS / 'web-1440-visao-geral.png')
+        page.wait_for_timeout(600); page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-visao-geral.png')
     _()
 
     @step('recarregar a página mantém a sessão (cookie HttpOnly + CSRF)')
@@ -82,7 +82,7 @@ def run_desktop(browser):
         page.get_by_role('link', name='Vagas', exact=True).click()
         expect(page.get_by_role('heading', name='Vagas', exact=True)).to_be_visible()
         expect(page.locator('table.grid tbody tr').first).to_be_visible(timeout=8000)
-        page.screenshot(path=SHOTS / 'web-1440-vagas.png')
+        page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-vagas.png')
     _()
 
     # procura uma vaga com candidatura ativa via API
@@ -105,7 +105,7 @@ def run_desktop(browser):
         after = api('GET', f"/jobs/{job['id']}", tok)[1]
         moved = next(a for a in after['applications'] if a['id'] == app['id'])
         assert moved['stage_id'] == next_stage['id'], 'servidor não refletiu a mudança'
-        page.screenshot(path=SHOTS / 'web-1440-pipeline.png')
+        page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-pipeline.png')
     _()
 
     @step('mudança feita por OUTRO cliente aparece na tela sem recarregar (sincronização)')
@@ -129,7 +129,7 @@ def run_desktop(browser):
         expect(page.get_by_role('dialog', name='Registro alterado por outra pessoa')).to_be_visible(timeout=8000)
         final = api('GET', f"/jobs/{job['id']}", tok)[1]['job']
         assert final['title'] != 'Edição que não pode vencer' and final['department'] == outro
-        page.screenshot(path=SHOTS / 'web-1440-conflito.png')
+        page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-conflito.png')
         page.get_by_role('button', name='Carregar versão atual').click()
     _()
 
@@ -149,7 +149,7 @@ def run_desktop(browser):
         expect(art.get_by_text(marca)).to_be_visible(timeout=8000)
         depois = next(p for p in api('GET', '/workforce/plans', tok)[1] if p['id'] == plan['id'])
         assert depois['actions'][idx]['done'] and depois['actions'][idx]['evidence'] == marca, 'servidor não persistiu a evidência'
-        page.screenshot(path=SHOTS / 'web-1440-desenvolvimento.png')
+        page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-desenvolvimento.png')
     _()
 
     @step('ausências: registrar solicitação e aprovar')
@@ -165,7 +165,7 @@ def run_desktop(browser):
         dlg.get_by_role('button', name='Registrar').click()
         row = page.locator('tbody tr', has_text='Pendente').first; expect(row).to_be_visible(timeout=8000)
         row.get_by_role('button', name='Aprovar').click(); page.wait_for_timeout(800)
-        page.screenshot(path=SHOTS / 'web-1440-ausencias.png')
+        page.wait_for_timeout(1100); page.screenshot(path=SHOTS / 'web-1440-ausencias.png')
     _()
 
     @step('conta: sessões ativas listadas e logout encerra a sessão')
@@ -203,15 +203,15 @@ def run_mobile(browser):
 
     @step('celular 390 px: login, navegação inferior e sem rolagem horizontal')
     def _():
-        p.goto(SITE + '/'); p.screenshot(path=SHOTS / 'web-390-login.png')
+        p.goto(SITE + '/'); p.wait_for_timeout(1100); p.screenshot(path=SHOTS / 'web-390-login.png')
         login_ui(p); expect(p.get_by_role('heading', name=re.compile('Olá'))).to_be_visible(timeout=10000)
         nav = p.get_by_role('navigation', name='Principal'); expect(nav).to_be_visible()
         box = nav.bounding_box(); assert box['y'] > 700, f'navegação deveria estar na base ({box})'
         w = p.evaluate('document.documentElement.scrollWidth'); assert w <= 391, f'rolagem horizontal: {w}'
-        p.wait_for_timeout(500); p.screenshot(path=SHOTS / 'web-390-visao-geral.png')
+        p.wait_for_timeout(500); p.wait_for_timeout(1100); p.screenshot(path=SHOTS / 'web-390-visao-geral.png')
         p.get_by_role('link', name='Vagas', exact=True).click(); expect(p.locator('table.grid tbody tr').first).to_be_visible(timeout=8000)
         assert p.evaluate('document.documentElement.scrollWidth') <= 391
-        p.screenshot(path=SHOTS / 'web-390-vagas.png', full_page=False)
+        p.wait_for_timeout(1100); p.screenshot(path=SHOTS / 'web-390-vagas.png', full_page=False)
     _()
     ctx.close()
 
@@ -223,7 +223,7 @@ def run_offline(browser):
         ctx.route('**/api/**', lambda r: r.abort())
         p.get_by_role('link', name='Pessoas').click()
         expect(p.get_by_text('Sem conexão com o servidor').first).to_be_visible(timeout=15000)
-        p.screenshot(path=SHOTS / 'web-1440-sem-conexao.png')
+        p.wait_for_timeout(1100); p.screenshot(path=SHOTS / 'web-1440-sem-conexao.png')
         ctx.close()
     _()
 

@@ -40,8 +40,8 @@ export default function Jobs() {
                     <td data-label="Vaga"><Link className="cell-link" to={`/vagas/${j.id}`}>{j.title}</Link></td>
                     <td data-label="Área">{j.department}</td>
                     <td data-label="Local">{j.location} · {j.modality}</td>
-                    <td data-label="Faixa">{j.salary_max > 0 ? `${fmtMoney(j.salary_min)} – ${fmtMoney(j.salary_max)}` : '—'}</td>
-                    <td data-label="Prazo">{fmtDate(j.due_date)}</td>
+                    <td data-label="Faixa" className="nw">{j.salary_max > 0 ? `${fmtMoney(j.salary_min)} – ${fmtMoney(j.salary_max)}` : '—'}</td>
+                    <td data-label="Prazo" className="nw">{fmtDate(j.due_date)}</td>
                     <td data-label="Situação"><Tag tone={JOB_STATUS[j.status]?.tone}>{JOB_STATUS[j.status]?.label ?? j.status}</Tag></td>
                     <td data-label="Candidaturas" className="num">{j.applications}</td>
                   </tr>

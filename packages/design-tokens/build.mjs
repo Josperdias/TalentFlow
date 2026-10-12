@@ -14,9 +14,11 @@ const banner = 'GERADO por packages/design-tokens/build.mjs — não edite à m�
 const vars = c => Object.entries(c).map(([k, v]) => `  --c-${kebab(k)}: ${v};`).join('\n');
 const sp = Object.entries(t.space).map(([k, v]) => `  --s-${k}: ${v}px;`).join('\n');
 const rd = Object.entries(t.radius).map(([k, v]) => `  --r-${k}: ${v}px;`).join('\n');
+const fx = Object.entries(t.effects).map(([k, v]) => `  --${kebab(k)}: ${v};`).join('\n');
+const mo = `  --m-fast: ${t.motion.fast}ms;\n  --m-base: ${t.motion.base}ms;\n  --m-slow: ${t.motion.slow}ms;\n  --ease: ${t.motion.ease};`;
 const ty = Object.entries(t.type.scale).map(([k, v]) => `  --t-${kebab(k)}: ${v}px;`).join('\n');
 out('apps/web/src/styles/tokens.css', `/* ${banner} */
-:root {\n${vars(t.color.light)}\n${sp}\n${rd}\n${ty}
+:root {\n${vars(t.color.light)}\n${sp}\n${rd}\n${ty}\n${fx}\n${mo}
   --f-ui: ${t.type.web.ui};\n  --f-display: ${t.type.web.display};\n  --f-mono: ${t.type.web.mono};
   --rail-w: ${t.layout.railWidth}px;\n  --row-h: ${t.layout.rowHeight}px;\n  --content-max: ${t.layout.contentMax}px;
   color-scheme: light;\n}
@@ -44,7 +46,7 @@ ${kt('Dark', t.color.dark)}
     /** Espaçamentos em dp. */
     const val S1 = ${t.space['1']}; const val S2 = ${t.space['2']}; const val S3 = ${t.space['3']}; const val S4 = ${t.space['4']}
     const val S5 = ${t.space['5']}; const val S6 = ${t.space['6']}; const val S7 = ${t.space['7']}
-    const val RADIUS_SM = ${t.radius.sm}; const val RADIUS_MD = ${t.radius.md}; const val RADIUS_LG = ${t.radius.lg}
+    const val RADIUS_SM = ${t.radius.sm}; const val RADIUS_MD = ${t.radius.md}; const val RADIUS_LG = ${t.radius.lg}; const val RADIUS_XL = ${t.radius.xl}
     const val TOUCH_TARGET = ${t.layout.touchTarget}
 }
 `);
@@ -63,6 +65,8 @@ ${themed('Dark', t.color.dark)}
   <x:Double x:Key="TfRailWidth">${t.layout.railWidth}</x:Double>
   <CornerRadius x:Key="TfRadiusMd">${t.radius.md}</CornerRadius>
   <CornerRadius x:Key="TfRadiusSm">${t.radius.sm}</CornerRadius>
+  <CornerRadius x:Key="TfRadiusLg">${t.radius.lg}</CornerRadius>
+  <CornerRadius x:Key="TfRadiusXl">${t.radius.xl}</CornerRadius>
 </ResourceDictionary>
 `);
 
@@ -83,5 +87,7 @@ ${cs('Dark', t.color.dark)}
     public const double RailWidth = ${t.layout.railWidth};
     public const double RadiusSm = ${t.radius.sm};
     public const double RadiusMd = ${t.radius.md};
+    public const double RadiusLg = ${t.radius.lg};
+    public const double RadiusXl = ${t.radius.xl};
 }
 `);
