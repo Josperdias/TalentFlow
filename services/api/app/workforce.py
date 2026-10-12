@@ -3,7 +3,7 @@ Patterns influenced by Frappe HR/Horilla; this is original implementation, no GP
 """
 from datetime import date,datetime,timezone,timedelta
 from collections import Counter
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,8 +11,9 @@ from typing import Literal
 from .database import get_db
 from .security import allowed
 from .models import User, Employee, DevelopmentPlan, LeaveRequest, AuditLog
+from .hardening import check_version
 
-router=APIRouter(prefix='/api/workforce',tags=['Workforce'])
+router=APIRouter(prefix='/workforce',tags=['Workforce'])
 ROLES=('admin','recruiter','manager')
 
 
@@ -34,7 +35,7 @@ def iso(value):
     except (ValueError,TypeError):raise HTTPException(422,'Informe data no formato AAAA-MM-DD')
 
 def plan_json(x,employee):
-    return {'id':x.id,'employee_id':employee.id,'employee':employee.name,'title':x.title,'competency':x.competency,'goal':x.goal,'actions':x.actions,'progress':x.progress,'status':x.status,'due_date':x.due_date,'owner_id':x.owner_id}
+    return {'id':x.id,'employee_id':employee.id,'employee':employee.name,'title':x.title,'competency':x.competency,'goal':x.goal,'actions':x.actions,'progress':x.progress,'status':x.status,'due_date':x.due_date,'owner_id':x.owner_id,'version':x.version}
 
 class PlanIn(BaseModel):
     employee_id:int
@@ -69,8 +70,9 @@ class PlanAction(BaseModel):
     evidence:str=Field(default='',max_length=1000)
 
 @router.post('/plans/{plan_id}/action')
-def update_plan_action(plan_id:int,data:PlanAction,user:User=Depends(allowed(*ROLES)),db:Session=Depends(get_db)):
+def update_plan_action(plan_id:int,data:PlanAction,request:Request,user:User=Depends(allowed(*ROLES)),db:Session=Depends(get_db)):
     p=scoped(db,DevelopmentPlan,user,plan_id);e=employee_scoped(db,user,p.employee_id)
+    check_version(request,p.version,plan_json(p,e))
     if p.status=='archived':raise HTTPException(409,'Plano arquivado')
     activities=[dict(a) for a in p.actions]
     if data.index>=len(activities):raise HTTPException(422,'Atividade inexistente')

@@ -9,7 +9,7 @@ from fastapi import FastAPI,Depends,HTTPException,Request,Response,UploadFile,Fi
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel,Field,EmailStr,field_validator
-from sqlalchemy import select,func
+from sqlalchemy import select,func,update
 from sqlalchemy.orm import Session
 from .database import get_db,init_db,DATABASE_URL
 from .seed import seed_if_empty
@@ -18,10 +18,15 @@ from .lifecycle import router as lifecycle_router
 from .workforce import router as workforce_router
 from .workforce_seed import seed_workforce_if_empty
 from .workspace import router as workspace_router
+from .auth_v1 import router as auth_v1_router
+from .sync import router as sync_router
+from sqlalchemy.orm.exc import StaleDataError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .models import *
 from .security import allowed,current_user,verify_password,create_session
 from .adapters import ai_service,communications,LocalPrivateStorage
-from .hardening import csrf_value, validate_browser_request, rate_limit, reset_rate_limit
+from .hardening import csrf_value, validate_browser_request, rate_limit, reset_rate_limit, check_version
 
 ROOT=Path(__file__).resolve().parent.parent
 @asynccontextmanager
@@ -33,14 +38,36 @@ async def lifespan(app):
             raise RuntimeError('Produção exige COOKIE_SECURE=true e HTTPS')
         if os.getenv('DEMO_SEED','false').lower()=='true':
             raise RuntimeError('Dados e credenciais de demonstração são proibidos em produção')
-    init_db()
+    if os.getenv('APP_ENV','development').lower()=='production':
+        # Produção: o schema só evolui por migrações Alembic (alembic upgrade head), nunca por create_all.
+        from sqlalchemy import inspect
+        from .database import engine
+        if not inspect(engine).has_table('alembic_version'):
+            raise RuntimeError('Banco sem migrações aplicadas. Execute: alembic upgrade head')
+    else:
+        init_db()
     if os.getenv('APP_ENV','development').lower() != 'production' and os.getenv('DEMO_SEED','true').lower()=='true':
         seed_if_empty();seed_lifecycle_if_empty();seed_workforce_if_empty()
     yield
-app=FastAPI(title='TalentFlow People',version='0.4.0',lifespan=lifespan,docs_url='/api/docs')
-app.include_router(lifecycle_router)
-app.include_router(workforce_router)
-app.include_router(workspace_router)
+app=FastAPI(title='TalentFlow People API',version='1.0.0',lifespan=lifespan,docs_url='/api/docs',openapi_url='/api/openapi.json')
+# Legado (/api/*, fora do OpenAPI) para a interface v1.1 + versão estável (/api/v1/*) para os novos clientes.
+for _router in (lifecycle_router,workforce_router):
+    app.include_router(_router,prefix='/api',include_in_schema=False)
+    app.include_router(_router,prefix='/api/v1')
+app.include_router(workspace_router,include_in_schema=False)
+app.include_router(auth_v1_router)
+app.include_router(sync_router)
+
+# CORS só para origens explicitamente listadas (ex.: site em outro domínio). Padrão: nenhuma.
+_origins=[o.strip() for o in os.getenv('CORS_ORIGINS','').split(',') if o.strip()]
+if _origins:
+    app.add_middleware(CORSMiddleware,allow_origins=_origins,allow_credentials=False,
+        allow_methods=['GET','POST','PATCH','PUT','DELETE'],allow_headers=['Authorization','Content-Type','If-Match','X-TF-CSRF'],
+        expose_headers=['ETag'],max_age=600)
+
+@app.exception_handler(StaleDataError)
+async def stale_data(_req,_exc):
+    return JSONResponse({'detail':{'message':'O registro foi alterado por outra sessão. Atualize e tente novamente.'}},status_code=409)
 
 # Deny cross-origin mutations and require a per-session CSRF header.
 @app.middleware('http')
@@ -77,9 +104,9 @@ def activity(db,user,app_id,kind,description,metadata=None):
     db.add(Activity(company_id=user.company_id,application_id=app_id,author_id=user.id,kind=kind,description=description,metadata_json=metadata or {}))
 
 def user_json(u):return dict(id=u.id,name=u.name,email=u.email,role=u.role,company_id=u.company_id)
-def job_json(j,applications=0):return dict(id=j.id,code=j.code,title=j.title,department=j.department,location=j.location,modality=j.modality,seniority=j.seniority,employment=j.employment,salary_min=j.salary_min,salary_max=j.salary_max,description=j.description,requirements=j.requirements,benefits=j.benefits,positions=j.positions,status=j.status,due_date=j.due_date,manager_id=j.manager_id,recruiter_id=j.recruiter_id,applications=applications,created_at=j.created_at.isoformat())
+def job_json(j,applications=0):return dict(id=j.id,code=j.code,title=j.title,department=j.department,location=j.location,modality=j.modality,seniority=j.seniority,employment=j.employment,salary_min=j.salary_min,salary_max=j.salary_max,description=j.description,requirements=j.requirements,benefits=j.benefits,positions=j.positions,status=j.status,due_date=j.due_date,manager_id=j.manager_id,recruiter_id=j.recruiter_id,applications=applications,version=j.version,created_at=j.created_at.isoformat())
 def candidate_json(c):return dict(id=c.id,name=c.name,email=c.email,phone=c.phone,location=c.location,title=c.title,source=c.source,skills=c.skills,experience_years=c.experience_years,education=c.education,resume_text=c.resume_text,consent=c.consent,created_at=c.created_at.isoformat())
-def app_json(a,c,j,stage):return dict(id=a.id,candidate_id=c.id,job_id=j.id,stage_id=stage.id,stage=stage.name,status=a.status,fit=a.fit,fit_reason=a.fit_reason,last_activity_at=a.last_activity_at.isoformat(),applied_at=a.created_at.isoformat(),candidate=candidate_json(c),job=job_json(j))
+def app_json(a,c,j,stage):return dict(id=a.id,candidate_id=c.id,job_id=j.id,stage_id=stage.id,stage=stage.name,status=a.status,fit=a.fit,fit_reason=a.fit_reason,version=a.version,last_activity_at=a.last_activity_at.isoformat(),applied_at=a.created_at.isoformat(),candidate=candidate_json(c),job=job_json(j))
 
 def can_access_job(db,user,job):
     if user.role in ('admin','recruiter'):return True
@@ -120,7 +147,7 @@ def csrf(req:Request,user:User=Depends(current_user)):
 
 @app.post('/api/auth/login')
 def login(data:LoginIn,response:Response,request:Request,db:Session=Depends(get_db)):
-    rate_limit(db,'login-ip',request.client.host if request.client else 'unknown',40)
+    rate_limit(db,'login-ip',request.client.host if request.client else 'unknown',int(os.getenv('TF_LOGIN_IP_LIMIT','40')))
     rate_limit(db,'login-account',data.email.lower().strip(),8)
     u=db.scalar(select(User).where(User.email==data.email.lower().strip(),User.active.is_(True)))
     if not u or not verify_password(data.password,u.password_hash):raise HTTPException(401,'Credenciais inválidas')
@@ -198,9 +225,9 @@ class JobIn(BaseModel):
     def trim_title(cls,v):return v.strip()
 @app.post('/api/jobs')
 def create_job(data:JobIn,user:User=Depends(allowed(*ROLE_EDIT)),db:Session=Depends(get_db)):
-    next_id=(db.scalar(select(func.max(Job.id))) or 0)+1
-    j=Job(company_id=user.company_id,code=f'TF-{next_id:05}',**data.model_dump(),recruiter_id=user.id)
-    db.add(j);db.flush()
+    # O código deriva do id gerado pelo banco (sem max()+1, que colidia sob concorrência).
+    j=Job(company_id=user.company_id,code='TF-'+secrets.token_hex(6),**data.model_dump(),recruiter_id=user.id)
+    db.add(j);db.flush();db.execute(update(Job).where(Job.id==j.id).values(code=f'TF-{j.id:05}'));db.refresh(j)  # UPDATE direto: não consome a versão otimista
     for i,name in enumerate(['Novos','Triagem','Entrevista RH','Entrevista Gestor','Teste','Finalistas','Proposta','Contratado','Reprovado']):
         db.add(JobStage(company_id=user.company_id,job_id=j.id,name=name,order=i,kind='hired' if i==7 else 'rejected' if i==8 else 'active'))
     audit(db,user,'created','job',j.id,after=data.model_dump());db.commit();return job_json(j)
@@ -214,8 +241,9 @@ def job_detail(job_id:int,user:User=Depends(allowed(*ROLE_VIEW)),db:Session=Depe
     stage_ids={s.id:s for s in stages}
     return {'job':job_json(j,len(apps)),'stages':[{'id':s.id,'name':s.name,'kind':s.kind,'order':s.order} for s in stages],'applications':[app_json(a,candidates[a.candidate_id],j,stage_ids[a.stage_id]) for a in apps if a.candidate_id in candidates and a.stage_id in stage_ids]}
 @app.patch('/api/jobs/{job_id}')
-def update_job(job_id:int,data:dict,user:User=Depends(allowed(*ROLE_EDIT)),db:Session=Depends(get_db)):
+def update_job(job_id:int,data:dict,request:Request,user:User=Depends(allowed(*ROLE_EDIT)),db:Session=Depends(get_db)):
     j=obj(db,Job,user,job_id)
+    check_version(request,j.version,job_json(j))
     allowed_fields=set(JobIn.model_fields)
     for key,value in data.items():
         if key not in allowed_fields:raise HTTPException(422,f'Campo não permitido: {key}')
@@ -305,8 +333,9 @@ def process_automation(db,user,a,stage):
             db.add(AutomationRun(company_id=user.company_id,automation_id=rule.id,application_id=a.id,status='error',detail=str(exc)[:200]))
 
 @app.post('/api/applications/{application_id}/move')
-def move(application_id:int,data:dict,user:User=Depends(allowed('admin','recruiter','manager')),db:Session=Depends(get_db)):
+def move(application_id:int,data:dict,request:Request,user:User=Depends(allowed('admin','recruiter','manager')),db:Session=Depends(get_db)):
     a,c,j,old=get_application(db,user,application_id)
+    check_version(request,a.version,{'stage_id':old.id,'stage':old.name,'status':a.status})
     if user.role=='manager' and j.manager_id!=user.id:raise HTTPException(403,'Vaga não atribuída')
     stage=obj(db,JobStage,user,int(data.get('stage_id',0)))
     if stage.job_id!=a.job_id:raise HTTPException(422,'Etapa não pertence à vaga')
@@ -317,7 +346,7 @@ def move(application_id:int,data:dict,user:User=Depends(allowed('admin','recruit
     info={'previous':old.name,'next':stage.name,'reason':reason}
     activity(db,user,a.id,'stage_changed',f'{old.name} → {stage.name}'+(f' · {reason}' if reason else ''),info)
     audit(db,user,'stage_changed','application',a.id,before=before,after={'stage':stage.name,'reason':reason})
-    process_automation(db,user,a,stage);db.commit();return {'ok':True,'stage':stage.name,'status':a.status}
+    process_automation(db,user,a,stage);db.commit();return {'ok':True,'stage':stage.name,'status':a.status,'version':a.version}
 @app.post('/api/applications/{application_id}/fit')
 def assess_fit(application_id:int,data:dict,user:User=Depends(allowed(*ROLE_EVAL)),db:Session=Depends(get_db)):
     a,c,j,s=get_application(db,user,application_id)
@@ -625,13 +654,28 @@ def anonymize_candidate(candidate_id:int,user:User=Depends(allowed('admin')),db:
 @app.get('/api/health')
 def health():return {'status':'ok','product':'TalentFlow ATS'}
 
-# Frontend served from the same origin as API and session cookie.
-app.mount('/assets',StaticFiles(directory=ROOT/'web'),name='assets')
-@app.get('/workspace',include_in_schema=False)
-def connected_workspace(user:User=Depends(allowed('admin'))):
-    # Personal data is never embedded in an unauthenticated route.
-    return FileResponse(ROOT/'private_views'/'workspace.html',headers={'Cache-Control':'no-store'})
+# ---- API v1: mesmas regras de negócio/RBAC, caminho versionado, OpenAPI limpo ----------
+# As rotas legadas /api/* continuam funcionando para a interface v1.1 (sem quebra abrupta)
+# mas saem do OpenAPI; clientes novos usam exclusivamente /api/v1/*.
+_LEGACY_ONLY=('/api/auth/','/api/me','/api/health','/api/workspace','/api/docs','/api/openapi')
+for _r in list(app.router.routes):
+    _path=getattr(_r,'path','')
+    if _path.startswith(_LEGACY_ONLY):_r.include_in_schema=False
+    if not _path.startswith('/api/') or _path.startswith('/api/v1/') or _path.startswith(_LEGACY_ONLY):continue
+    app.add_api_route('/api/v1'+_path[4:],_r.endpoint,methods=sorted(_r.methods),name=_r.name+'_v1',
+        tags=list(_r.tags or [])+['v1'],response_model=getattr(_r,'response_model',None),
+        status_code=getattr(_r,'status_code',None),dependencies=getattr(_r,'dependencies',None),summary=_r.summary)
+    _r.include_in_schema=False
 
-@app.get('/{path:path}',include_in_schema=False)
-def frontend(path:str):
-    return FileResponse(ROOT/'web'/'index.html')
+# Interface legada v1.1 (somente desenvolvimento): em produção o site é o pacote compilado
+# do apps/web, servido pelo servidor do proprietário; a API não entrega HTML.
+if os.getenv('APP_ENV','development').lower()!='production' and os.getenv('SERVE_LEGACY_WEB','true').lower()=='true':
+    app.mount('/assets',StaticFiles(directory=ROOT/'web'),name='assets')
+    @app.get('/workspace',include_in_schema=False)
+    def connected_workspace(user:User=Depends(allowed('admin'))):
+        # Personal data is never embedded in an unauthenticated route.
+        return FileResponse(ROOT/'private_views'/'workspace.html',headers={'Cache-Control':'no-store'})
+
+    @app.get('/{path:path}',include_in_schema=False)
+    def frontend(path:str):
+        return FileResponse(ROOT/'web'/'index.html')

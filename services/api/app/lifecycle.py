@@ -14,7 +14,7 @@ from .security import allowed,current_user
 from .models import (User,Employee,OnboardingItem,LearningCourse,LearningEnrollment,
     PerformanceGoal,PerformanceReview,CareerEvent,Application,Job,Candidate,Offer,AuditLog)
 
-router=APIRouter(prefix='/api/lifecycle',tags=['People Lifecycle'])
+router=APIRouter(prefix='/lifecycle',tags=['People Lifecycle'])
 ALL_ROLES=('admin','recruiter','manager')
 WRITERS=('admin','recruiter')
 

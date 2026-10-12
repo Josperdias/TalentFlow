@@ -62,3 +62,16 @@ def reset_rate_limit(db:Session,bucket:str,identifier:str):
     key=hashlib.sha256((bucket+':'+identifier.casefold()).encode()).hexdigest()
     db.execute(delete(RateLimitEvent).where(RateLimitEvent.bucket_key==key))
     db.commit()
+
+
+def check_version(request:Request,current:int,snapshot=None):
+    """Controle otimista via If-Match. Em /api/v1 o cabeçalho é obrigatório (428 se ausente)."""
+    header=request.headers.get('if-match')
+    if header is None:
+        if request.url.path.startswith('/api/v1/'):
+            raise HTTPException(428,'Envie If-Match com a versão do registro que você está editando')
+        return
+    try:sent=int(header.strip().removeprefix('W/').strip('"'))
+    except ValueError:raise HTTPException(400,'If-Match inválido')
+    if sent!=current:
+        raise HTTPException(409,{'message':'O registro foi alterado por outra sessão. Revise antes de salvar.','current_version':current,'current':snapshot})

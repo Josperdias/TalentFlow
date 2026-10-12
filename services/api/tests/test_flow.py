@@ -3,10 +3,7 @@ import os,tempfile
 from pathlib import Path
 from fastapi.testclient import TestClient
 
-DB=Path(tempfile.gettempdir())/'talentflow_test_suite_20261011.db'
-try:DB.unlink()
-except FileNotFoundError:pass
-os.environ['DATABASE_URL']=f'sqlite:///{DB}'
+# O banco é definido por tests/conftest.py (SQLite temporário ou TF_TEST_DATABASE_URL).
 from app.main import app
 
 

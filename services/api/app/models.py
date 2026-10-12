@@ -33,6 +33,24 @@ class Session(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # 'cookie' = navegador (sessão de 12 h); 'access' = token de acesso curto de cliente nativo/API.
+    kind: Mapped[str] = mapped_column(String(10), default='cookie', server_default='cookie')
+    client: Mapped[str] = mapped_column(String(20), default='web', server_default='web')
+    family_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+
+class RefreshToken(Base):
+    """Refresh token opaco (somente o hash é guardado) com rotação e detecção de reuso."""
+    __tablename__ = 'refresh_tokens'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
+    family_id: Mapped[str] = mapped_column(String(36), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    client: Mapped[str] = mapped_column(String(20), default='web')
+    device: Mapped[str] = mapped_column(String(120), default='')
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 class Job(TenantMixin, Base):
     __tablename__ = 'jobs'
@@ -54,6 +72,9 @@ class Job(TenantMixin, Base):
     due_date: Mapped[str] = mapped_column(String(12), default='')
     manager_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
     recruiter_id: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)
+    # Controle otimista: cada UPDATE incrementa; clientes enviam If-Match com a versão que viram.
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default='1')
+    __mapper_args__ = {'version_id_col': version}
 
 class JobStage(TenantMixin, Base):
     __tablename__='job_stages'
@@ -87,6 +108,8 @@ class Application(TenantMixin, Base):
     fit: Mapped[int] = mapped_column(Integer, default=50)
     fit_reason: Mapped[str] = mapped_column(Text, default='Não avaliado')
     last_activity_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default='1')
+    __mapper_args__ = {'version_id_col': version}
 
 class Interview(TenantMixin, Base):
     __tablename__='interviews'
@@ -289,6 +312,8 @@ class DevelopmentPlan(TenantMixin,Base):
     status: Mapped[str] = mapped_column(String(24),default='active')
     due_date: Mapped[str] = mapped_column(String(10))
     owner_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default='1')
+    __mapper_args__ = {'version_id_col': version}
 
 class LeaveRequest(TenantMixin,Base):
     __tablename__='leave_requests'
