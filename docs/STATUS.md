@@ -72,7 +72,7 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 | Item | Situação |
 |---|---|
 | OAuth2/OIDC Authorization Code + PKCE no navegador do sistema | **não implementado**; login nativo usa formulário próprio -> `/auth/token` |
-| Auto-atualização do **Windows** | **implementada** (manifesto + instalador no seu servidor, SHA-256 obrigatório; ver `docs/ATUALIZACAO.md`); sem assinatura de código. **Android: não** (APK manual) |
+| Auto-atualização dentro do app (**Windows e Android**) | **implementada** (Releases do GitHub ou pasta no seu servidor, SHA-256 obrigatório; ver `docs/ATUALIZACAO.md`). Windows: sem assinatura de código. **Android: só funciona entre APKs assinados com a MESMA chave** (precisa dos segredos do keystore); não testado em aparelho |
 | Sincronização em tempo real (SSE/WebSocket) | **não**; polling de 4-5 s |
 | Offline com fila de mutações | **não** (por desenho: mostra "sem conexão") |
 | Row-Level Security no PostgreSQL | **não**; isolamento só na aplicação (coberto por testes) |

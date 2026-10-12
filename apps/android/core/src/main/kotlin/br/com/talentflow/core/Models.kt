@@ -151,3 +151,35 @@ fun isVersionBelow(current: String, minimum: String): Boolean {
     }
     return false
 }
+
+@Serializable
+data class UpdateInfo(
+    val available: Boolean = false, val version: String = "", val url: String = "", val sha256: String = "",
+    val size: Long = 0, val notes: String = "", val channel: String = "release", val source: String = "", val reason: String = "",
+)
+
+/** Precedência semântica completa (inclui pré-lançamento): 1.3.0-rc.1 < 1.3.0-rc.2 < 1.3.0. */
+fun isVersionNewer(current: String, candidate: String): Boolean = compareVersions(candidate, current) > 0
+
+fun compareVersions(a: String, b: String): Int {
+    fun parse(v: String): Pair<List<Int>, List<String>> {
+        val clean = v.substringBefore('+').removePrefix("v")
+        val core = clean.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+        val pre = if ('-' in clean) clean.substringAfter('-').split('.') else emptyList()
+        return core to pre
+    }
+    val (ca, pa) = parse(a); val (cb, pb) = parse(b)
+    for (i in 0 until maxOf(ca.size, cb.size)) {
+        val x = ca.getOrElse(i) { 0 }; val y = cb.getOrElse(i) { 0 }
+        if (x != y) return if (x < y) -1 else 1
+    }
+    if (pa.isEmpty() && pb.isEmpty()) return 0
+    if (pa.isEmpty()) return 1
+    if (pb.isEmpty()) return -1
+    for (i in 0 until minOf(pa.size, pb.size)) {
+        val xn = pa[i].toIntOrNull(); val yn = pb[i].toIntOrNull()
+        val c = when { xn != null && yn != null -> xn.compareTo(yn); xn != null -> -1; yn != null -> 1; else -> pa[i].compareTo(pb[i]) }
+        if (c != 0) return if (c < 0) -1 else 1
+    }
+    return pa.size.compareTo(pb.size).coerceIn(-1, 1)
+}

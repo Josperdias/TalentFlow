@@ -193,7 +193,7 @@ private fun MainScaffold(vm: AppViewModel, user: User) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
 
     // Sincroniza só enquanto o app está visível; ao voltar do segundo plano o feed é retomado.
-    LaunchedEffect(user.id) { lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.runSync() } }
+    LaunchedEffect(user.id) { lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.checkUpdate(); vm.runSync() } }
     BackHandler(enabled = openJob != null) { openJob = null }
 
     Scaffold(
@@ -233,6 +233,7 @@ private fun MainScaffold(vm: AppViewModel, user: User) {
                 Avatar(user.name, 32)
             }
             if (notice != null) Box(Modifier.padding(horizontal = 16.dp)) { Banner(notice!!) }
+            UpdateBanner(vm)
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 val job = openJob
                 when {

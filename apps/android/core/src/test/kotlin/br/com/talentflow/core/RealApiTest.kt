@@ -59,4 +59,15 @@ class RealApiTest {
         c.logout()
         assertEquals(null, store.load())
     }
+
+    /** Cadeia completa contra a API real: manifesto -> download autenticado -> SHA-256. Exige TF_EXPECT_UPDATE=1 (o CI prepara a pasta). */
+    @Test fun `atualizacao real manifesto download e sha256`() = runBlocking {
+        assumeTrue("TF_API_URL/TF_EXPECT_UPDATE não definidos", base != null && System.getenv("TF_EXPECT_UPDATE") == "1")
+        val c = client("U"); c.login("admin@nexa.demo", password)
+        val info = Updater.check(c, "1.0.0")
+        assertEquals("99.0.0", info?.version)
+        assertTrue(Updater.check(c, "99.0.0") == null)
+        val file = Updater.downloadAndVerify(c, info!!, java.nio.file.Files.createTempDirectory("tf-real").toFile(), "update.apk")
+        assertEquals(info.size, file.length())
+    }
 }

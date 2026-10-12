@@ -28,6 +28,10 @@ services:
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       TF_UPDATES_DIR: /updates
+      # Atualização automática pelas Releases do GitHub (opcional). Token só para repositório privado, somente leitura, só no servidor.
+      TF_UPDATES_GITHUB_REPO: ${TF_UPDATES_GITHUB_REPO:-}
+      TF_UPDATES_GITHUB_TOKEN: ${TF_UPDATES_GITHUB_TOKEN:-}
+      TF_UPDATES_PRERELEASES: ${TF_UPDATES_PRERELEASES:-true}
     depends_on:
       db:
         condition: service_healthy

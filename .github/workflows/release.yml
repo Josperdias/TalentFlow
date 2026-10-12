@@ -34,7 +34,7 @@ jobs:
         with: { path: artifacts }
       - name: Reunir arquivos e checksums
         run: |
-          mkdir release && find artifacts -type f \( -name '*.apk' -o -name '*.exe' -o -name '*.zip' -o -name '*.sha256' -o -name 'windows.json' \) -exec cp {} release/ \;
+          mkdir release && find artifacts -type f \( -name '*.apk' -o -name '*.exe' -o -name '*.zip' -o -name '*.sha256' -o -name 'windows.json' -o -name 'android.json' \) -exec cp {} release/ \;
           cd release && sha256sum -c *.sha256 && ls -l
           sha256sum *.apk *.exe *.zip > SHA256SUMS.txt
       - name: Notas da versão
@@ -46,7 +46,7 @@ jobs:
             echo
             echo "| Arquivo | Para quê |"
             echo "|---|---|"
-            ls release | grep -v sha256 | grep -v windows.json | sed 's/^/| `/; s/$/` | ver README |/'
+            ls release | grep -v sha256 | grep -v -e windows.json -e android.json | sed 's/^/| `/; s/$/` | ver README |/'
             echo
             echo "Para atualizar pelo seu servidor: copie o instalador \`.exe\` e o \`windows.json\` para a pasta de atualizações (veja docs/ATUALIZACAO.md). Verifique a integridade com \`SHA256SUMS.txt\`. O instalador do Windows e o APK de depuração **não são assinados** (veja STATUS)."
           } > notes.md

@@ -16,6 +16,9 @@ import br.com.talentflow.core.Leave
 import br.com.talentflow.core.NetworkException
 import br.com.talentflow.core.Plan
 import br.com.talentflow.core.Portal
+import br.com.talentflow.core.UpdateInfo
+import br.com.talentflow.core.UpdateIntegrityException
+import br.com.talentflow.core.Updater
 import br.com.talentflow.core.ServerUrl
 import br.com.talentflow.core.SessionInfo
 import br.com.talentflow.core.User
@@ -44,6 +47,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.IOException
 
 sealed interface Phase {
     data object Boot : Phase
@@ -54,6 +59,16 @@ sealed interface Phase {
 }
 
 enum class Connection { Connecting, Online, Offline }
+
+/** Estados da atualização dentro do app (sem navegador): avisar -> baixar e conferir SHA-256 -> o Android confirma e instala. */
+sealed interface UpdateState {
+    data object Idle : UpdateState
+    data class Available(val info: UpdateInfo) : UpdateState
+    data class NeedsPermission(val info: UpdateInfo) : UpdateState
+    data class Downloading(val info: UpdateInfo, val done: Long) : UpdateState
+    data class WaitingConfirm(val info: UpdateInfo) : UpdateState
+    data class Failed(val info: UpdateInfo?, val message: String) : UpdateState
+}
 
 /** Resultado de uma ação de escrita; conflito (409) tem tratamento próprio e nunca sobrescreve em silêncio. */
 sealed interface ActionResult {
@@ -73,6 +88,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val connection: StateFlow<Connection> = _connection.asStateFlow()
     private val _notice = MutableStateFlow<String?>(null)
     val notice: StateFlow<String?> = _notice.asStateFlow()
+    private val _update = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val update: StateFlow<UpdateState> = _update.asStateFlow()
+    private var lastUpdateCheck = 0L
     private val _server = MutableStateFlow(prefs.getString(KEY_BASE, null))
     val server: StateFlow<String?> = _server.asStateFlow()
 
@@ -96,7 +114,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun jobDetail(id: Int): Loadable<JobDetail> =
         details.getOrPut(id) { loadable("job", "application", "job_stage", "interview", "scorecard") { client().jobDetail(id) } }
 
-    init { boot() }
+    init {
+        boot()
+        viewModelScope.launch {
+            UpdateInstaller.failure.collect { msg ->
+                if (msg != null) _update.value = UpdateState.Failed((_update.value as? UpdateState.WaitingConfirm)?.info, msg)
+            }
+        }
+    }
 
     // ---------- sessão ----------
     fun boot() {
@@ -108,7 +133,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (!client().isSignedIn) { _phase.value = Phase.NeedLogin(); return@launch }
             try {
                 val me = client().me()
-                _phase.value = Phase.Ready(me); checkVersion()
+                _phase.value = Phase.Ready(me); checkVersion(); checkUpdate(force = true)
             } catch (_: AuthExpiredException) {
                 _phase.value = Phase.NeedLogin("Sua sessão expirou. Entre novamente.")
             } catch (e: ApiException) {
@@ -148,7 +173,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val user = client().login(email, password)
-                _phase.value = Phase.Ready(user); checkVersion()
+                _phase.value = Phase.Ready(user); checkVersion(); checkUpdate(force = true)
             } catch (e: ApiException) { onError(e.message ?: "Não foi possível entrar.") }
             catch (e: NetworkException) { onError(e.message ?: "Sem conexão.") }
         }
@@ -173,6 +198,47 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _notice.value = if (min != null && isVersionBelow(BuildConfig.VERSION_NAME, min))
                 "Este aplicativo (${BuildConfig.VERSION_NAME}) está abaixo da versão mínima $min exigida pelo servidor. Baixe a versão mais recente." else null
         } catch (_: Exception) { /* aviso é opcional */ }
+    }
+
+    // ---------- atualização do aplicativo ----------
+    /** Pergunta ao servidor se há build mais nova (publicada nas Releases do GitHub ou na pasta do servidor). */
+    fun checkUpdate(force: Boolean = false, onDone: (String) -> Unit = {}) {
+        val s = _update.value
+        if (s is UpdateState.Downloading || s is UpdateState.WaitingConfirm) return
+        if (!force && System.currentTimeMillis() - lastUpdateCheck < UPDATE_CHECK_MS) return
+        viewModelScope.launch {
+            try {
+                lastUpdateCheck = System.currentTimeMillis()
+                // A build de depuração tem o sufixo "-debug" só no nome: comparamos sem ele.
+                val info = Updater.check(client(), BuildConfig.VERSION_NAME.removeSuffix("-debug"))
+                _update.value = if (info != null) UpdateState.Available(info) else UpdateState.Idle
+                onDone(if (info != null) "Versão ${info.version} disponível." else "Você já está na versão mais recente publicada.")
+            } catch (_: AuthExpiredException) { onAuthExpired() }
+            catch (e: ApiException) { onDone(e.message ?: "Não foi possível verificar.") }
+            catch (e: NetworkException) { onDone(e.message ?: "Sem conexão.") }
+        }
+    }
+
+    /** Baixa, confere o SHA-256 e entrega ao instalador do Android (a pessoa só confirma na tela do sistema). */
+    fun startUpdate() {
+        val info = when (val s = _update.value) {
+            is UpdateState.Available -> s.info; is UpdateState.NeedsPermission -> s.info; is UpdateState.Failed -> s.info; else -> null
+        } ?: return
+        val ctx = getApplication<Application>()
+        if (!UpdateInstaller.canInstall(ctx)) { _update.value = UpdateState.NeedsPermission(info); UpdateInstaller.openPermissionSettings(ctx); return }
+        viewModelScope.launch {
+            try {
+                _update.value = UpdateState.Downloading(info, 0)
+                val file = Updater.downloadAndVerify(client(), info, File(ctx.cacheDir, "updates"), "talentflow-update.apk") { n -> _update.value = UpdateState.Downloading(info, n) }
+                _update.value = UpdateState.WaitingConfirm(info)
+                UpdateInstaller.install(ctx, file)
+            } catch (e: UpdateIntegrityException) { _update.value = UpdateState.Failed(info, e.message ?: "Arquivo corrompido.") }
+            catch (_: AuthExpiredException) { onAuthExpired() }
+            catch (e: ApiException) { _update.value = UpdateState.Failed(info, e.message ?: "Falha ao baixar.") }
+            catch (e: NetworkException) { _update.value = UpdateState.Failed(info, e.message ?: "Sem conexão.") }
+            catch (e: IOException) { _update.value = UpdateState.Failed(info, "Não foi possível gravar a atualização: ${e.message}") }
+            catch (e: SecurityException) { _update.value = UpdateState.Failed(info, "O Android negou a instalação: ${e.message}") }
+        }
     }
 
     // ---------- sincronização ----------
@@ -231,6 +297,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val KEY_BASE = "api_base"
         const val POLL_MS = 5000L
+        const val UPDATE_CHECK_MS = 30 * 60 * 1000L
     }
 }
 

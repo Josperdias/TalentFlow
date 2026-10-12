@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Instalar a atualização baixada pelo próprio app (o Android pede a permissão "instalar apps desta fonte" uma vez). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".TalentFlowApp"
@@ -23,5 +25,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver android:name=".data.InstallResultReceiver" android:exported="false" />
     </application>
 </manifest>
