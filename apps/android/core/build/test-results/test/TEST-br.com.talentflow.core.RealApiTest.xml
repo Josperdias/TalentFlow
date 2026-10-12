@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="br.com.talentflow.core.RealApiTest" tests="3" skipped="3" failures="0" errors="0" timestamp="2026-10-12T19:03:28" hostname="vm" time="0.011">
+<testsuite name="br.com.talentflow.core.RealApiTest" tests="3" skipped="3" failures="0" errors="0" timestamp="2026-10-12T19:24:09" hostname="vm" time="0.011">
   <properties/>
-  <testcase name="criar no aparelho A aparece no aparelho B e conflito e detectado" classname="br.com.talentflow.core.RealApiTest" time="0.008">
+  <testcase name="criar no aparelho A aparece no aparelho B e conflito e detectado" classname="br.com.talentflow.core.RealApiTest" time="0.007">
     <skipped/>
   </testcase>
   <testcase name="refresh real rotaciona e sessao revogada exige novo login" classname="br.com.talentflow.core.RealApiTest" time="0.001">

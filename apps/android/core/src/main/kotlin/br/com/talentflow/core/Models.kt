@@ -125,6 +125,9 @@ data class RefreshResponse(
 )
 
 @Serializable
+data class MeEnvelope(val user: User)
+
+@Serializable
 data class MoveResult(val ok: Boolean = true, val stage: String = "", val status: String = "", val version: Int = 0)
 
 /** Compara versões "1.3.0-rc.1" ignorando sufixos; usado para avisar que o app está abaixo do mínimo da API. */

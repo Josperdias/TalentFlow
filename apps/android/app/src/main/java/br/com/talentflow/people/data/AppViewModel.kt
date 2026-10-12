@@ -28,6 +28,7 @@ import br.com.talentflow.core.insights
 import br.com.talentflow.core.isVersionBelow
 import br.com.talentflow.core.jobDetail
 import br.com.talentflow.core.jobs
+import br.com.talentflow.core.me
 import br.com.talentflow.core.leaves
 import br.com.talentflow.core.moveApplication
 import br.com.talentflow.core.plans
@@ -106,7 +107,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             if (!client().isSignedIn) { _phase.value = Phase.NeedLogin(); return@launch }
             try {
-                val me = client().get("/me", MeEnvelope.serializer()).user
+                val me = client().me()
                 _phase.value = Phase.Ready(me); checkVersion()
             } catch (_: AuthExpiredException) {
                 _phase.value = Phase.NeedLogin("Sua sessão expirou. Entre novamente.")
@@ -233,6 +234,4 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-@kotlinx.serialization.Serializable
-internal data class MeEnvelope(val user: User)
 

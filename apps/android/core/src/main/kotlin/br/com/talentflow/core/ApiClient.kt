@@ -180,6 +180,7 @@ suspend fun ApiClient.setPlanAction(plan: Plan, index: Int, done: Boolean, evide
 suspend fun ApiClient.leaves(status: String = "") = list("/workforce/leaves?status=$status", Leave.serializer())
 suspend fun ApiClient.decideLeave(id: Int, approved: Boolean): Leave =
     post("/workforce/leaves/$id/decide", buildJsonObject { put("decision", if (approved) "approved" else "rejected") }, Leave.serializer())
+suspend fun ApiClient.me(): User = get("/me", MeEnvelope.serializer()).user
 suspend fun ApiClient.portal() = get("/portal", Portal.serializer())
 suspend fun ApiClient.sessions() = list("/auth/sessions", SessionInfo.serializer())
 suspend fun ApiClient.revokeOtherSessions(): Int =
