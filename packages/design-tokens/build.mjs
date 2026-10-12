@@ -65,3 +65,23 @@ ${themed('Dark', t.color.dark)}
   <CornerRadius x:Key="TfRadiusSm">${t.radius.sm}</CornerRadius>
 </ResourceDictionary>
 `);
+
+// ---- Windows (C#): paleta para a interface construída em código ----
+const cs = (name, c) => `    public static readonly IReadOnlyDictionary<string, Color> ${name} = new Dictionary<string, Color>\n    {\n${Object.entries(c).map(([k, v]) => `        ["${k}"] = Color.FromArgb(255, 0x${v.slice(1, 3)}, 0x${v.slice(3, 5)}, 0x${v.slice(5, 7)})`).join(',\n')}\n    };`;
+out('apps/windows/TalentFlow.Windows/Styles/Tokens.cs', `// ${banner}
+using Windows.UI;
+
+namespace TalentFlow.Windows.Styles;
+
+public static class TfTokens
+{
+${cs('Light', t.color.light)}
+
+${cs('Dark', t.color.dark)}
+
+    public const double RowHeight = ${t.layout.rowHeight};
+    public const double RailWidth = ${t.layout.railWidth};
+    public const double RadiusSm = ${t.radius.sm};
+    public const double RadiusMd = ${t.radius.md};
+}
+`);

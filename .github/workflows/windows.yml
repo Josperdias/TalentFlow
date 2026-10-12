@@ -1,0 +1,133 @@
+name: windows
+
+on:
+  push:
+    branches: ['**']
+    paths: ['apps/windows/**', 'packages/design-tokens/**', 'VERSION', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['apps/windows/**', 'packages/design-tokens/**', 'VERSION', '.github/workflows/windows.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
+jobs:
+  core:
+    name: core C# (testes unitários + integração com API real)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: tf_windows }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: API real (migrações + seed de demonstração)
+        working-directory: services/api
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/tf_windows
+        run: |
+          pip install -r requirements.txt
+          alembic upgrade head
+          APP_ENV=development DEMO_SEED=true SERVE_LEGACY_WEB=false TF_LOGIN_IP_LIMIT=100000 \
+            nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/api/v1/health && break; sleep 1; done
+      - name: Testes do Core (inclui RealApiTests contra a API real)
+        working-directory: apps/windows
+        env: { TF_API_URL: 'http://127.0.0.1:8000' }
+        run: dotnet test TalentFlow.Core.Tests/TalentFlow.Core.Tests.csproj --logger "trx;LogFileName=results.trx"
+      - name: Conferir que a integração real NÃO foi pulada
+        working-directory: apps/windows
+        run: |
+          python3 - <<'PY'
+          import re, glob
+          s = open(glob.glob('TalentFlow.Core.Tests/TestResults/results.trx')[0], encoding='utf-8').read()
+          real = re.findall(r'<UnitTestResult[^>]*testName="[^"]*RealApiTests[^"]*"[^>]*outcome="(\w+)"', s)
+          print('RealApiTests:', real)
+          assert len(real) >= 3 and all(o == 'Passed' for o in real)
+          PY
+
+  app:
+    name: app WinUI 3 (publish autossuficiente + instalador .exe)
+    runs-on: windows-latest
+    needs: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Versão do produto
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION).Trim()
+          "PRODUCT_VERSION=$v" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Publicar (WinUI 3 unpackaged, self-contained, x64)
+        shell: pwsh
+        run: |
+          dotnet publish apps/windows/TalentFlow.Windows/TalentFlow.Windows.csproj -c Release -r win-x64 -p:Platform=x64 --self-contained true -o dist/windows-publish
+          if (-not (Test-Path dist/windows-publish/TalentFlow.exe)) { throw "TalentFlow.exe não foi gerado" }
+          $size = (Get-ChildItem dist/windows-publish -Recurse | Measure-Object Length -Sum).Sum / 1MB
+          "Tamanho da publicação: {0:N1} MB" -f $size
+          Get-ChildItem dist/windows-publish -Filter *.exe | Select-Object Name, Length
+      - name: Verificar que o executável é nativo (sem navegador embutido)
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem dist/windows-publish -Recurse | Where-Object { $_.Name -match 'WebView2|Electron|chrome_|libcef|msedgewebview' }
+          if ($bad) { $bad | ForEach-Object { $_.FullName }; throw "Componentes de navegador embutido encontrados" }
+          "OK: nenhum componente de navegador embutido na publicação."
+      - name: Teste de fumaça (abrir o app, capturar tela, fechar)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force -Path screenshots | Out-Null
+          $p = Start-Process -FilePath "dist/windows-publish/TalentFlow.exe" -PassThru
+          Start-Sleep -Seconds 15
+          $p.Refresh()
+          if ($p.HasExited) { "Log:"; Get-Content "$env:LOCALAPPDATA\TalentFlow\talentflow.log" -ErrorAction SilentlyContinue; throw "O aplicativo encerrou (código $($p.ExitCode))" }
+          "Processo vivo: PID $($p.Id), janela: '$($p.MainWindowTitle)', memória: $([int]($p.WorkingSet64/1MB)) MB"
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+          $bmp.Save("screenshots/windows-conectar.png")
+          Stop-Process -Id $p.Id -Force
+      - name: Instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress | Out-Null
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=$env:PRODUCT_VERSION" "/DPublishDir=$((Resolve-Path dist/windows-publish).Path)" apps/windows/installer/TalentFlow.iss
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao compilar o instalador" }
+      - name: Pacote portátil (.zip) e checksums
+        shell: pwsh
+        run: |
+          $v = $env:PRODUCT_VERSION
+          Compress-Archive -Path dist/windows-publish/* -DestinationPath "dist/talentflow-windows-v$v-portable.zip"
+          Get-ChildItem dist -Filter "*.exe","*.zip" | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($_.Name)" | Out-File -FilePath "$($_.FullName).sha256" -Encoding ascii
+            "$($_.Name)  $([int]($_.Length/1MB)) MB  sha256=$h"
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talentflow-windows
+          path: |
+            dist/TalentFlow-Setup-v*.exe
+            dist/TalentFlow-Setup-v*.exe.sha256
+            dist/talentflow-windows-v*-portable.zip
+            dist/talentflow-windows-v*-portable.zip.sha256
+            screenshots/*.png
+          if-no-files-found: warn
