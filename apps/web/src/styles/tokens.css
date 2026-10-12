@@ -1,0 +1,97 @@
+/* GERADO por packages/design-tokens/build.mjs — não edite à mão. */
+:root {
+  --c-canvas: #F4F5F2;
+  --c-surface: #FFFFFF;
+  --c-sunken: #E9ECE8;
+  --c-line: #D5DAD4;
+  --c-line-strong: #788580;
+  --c-ink: #142120;
+  --c-ink-muted: #4C5B57;
+  --c-ink-faint: #56645F;
+  --c-brand: #0B4F5C;
+  --c-brand-strong: #073A44;
+  --c-brand-soft: #DAE9EA;
+  --c-on-brand: #FFFFFF;
+  --c-attention: #85570F;
+  --c-attention-soft: #F3E7CF;
+  --c-positive: #256B49;
+  --c-positive-soft: #DCEBE2;
+  --c-critical: #A5342A;
+  --c-critical-soft: #F4DCD8;
+  --c-info: #2A6390;
+  --c-info-soft: #DCE8F2;
+  --c-focus: #0B6FD6;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --r-sm: 2px;
+  --r-md: 4px;
+  --r-lg: 6px;
+  --t-caption: 12px;
+  --t-body: 14px;
+  --t-body-large: 16px;
+  --t-title: 20px;
+  --t-headline: 28px;
+  --t-display: 36px;
+  --f-ui: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --f-display: 'Source Serif 4', Georgia, serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --rail-w: 232px;
+  --row-h: 36px;
+  --content-max: 1280px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --c-canvas: #0D1514;
+  --c-surface: #142120;
+  --c-sunken: #0A1110;
+  --c-line: #26373A;
+  --c-line-strong: #5F7B80;
+  --c-ink: #E8EEEC;
+  --c-ink-muted: #A8B8B3;
+  --c-ink-faint: #8A9C97;
+  --c-brand: #5BB6C4;
+  --c-brand-strong: #8ACFDA;
+  --c-brand-soft: #143A41;
+  --c-on-brand: #06262C;
+  --c-attention: #E0AE5B;
+  --c-attention-soft: #3A2E16;
+  --c-positive: #6FC49A;
+  --c-positive-soft: #17342A;
+  --c-critical: #F0958B;
+  --c-critical-soft: #401D19;
+  --c-info: #7FB4DE;
+  --c-info-soft: #15303F;
+  --c-focus: #7DB8FF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --c-canvas: #0D1514;
+  --c-surface: #142120;
+  --c-sunken: #0A1110;
+  --c-line: #26373A;
+  --c-line-strong: #5F7B80;
+  --c-ink: #E8EEEC;
+  --c-ink-muted: #A8B8B3;
+  --c-ink-faint: #8A9C97;
+  --c-brand: #5BB6C4;
+  --c-brand-strong: #8ACFDA;
+  --c-brand-soft: #143A41;
+  --c-on-brand: #06262C;
+  --c-attention: #E0AE5B;
+  --c-attention-soft: #3A2E16;
+  --c-positive: #6FC49A;
+  --c-positive-soft: #17342A;
+  --c-critical: #F0958B;
+  --c-critical-soft: #401D19;
+  --c-info: #7FB4DE;
+  --c-info-soft: #15303F;
+  --c-focus: #7DB8FF;
+  color-scheme: dark;
+}

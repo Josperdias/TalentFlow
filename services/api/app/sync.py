@@ -12,15 +12,23 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import AuditLog, User
+from fastapi import HTTPException
 from .security import current_user
 
 router = APIRouter(prefix='/api/v1', tags=['Sync'])
 FULL_VISIBILITY = ('admin', 'recruiter')
+STAFF = ('admin', 'recruiter', 'manager', 'interviewer')  # pessoa candidata não acompanha eventos internos
+
+
+def staff_only(user: User = Depends(current_user)) -> User:
+    if user.role not in STAFF:
+        raise HTTPException(403, 'Sem permissão para acompanhar mudanças')
+    return user
 
 
 @router.get('/changes', summary='Mudanças da empresa após um cursor')
 def changes(after: int = Query(default=0, ge=0), limit: int = Query(default=100, ge=1, le=500),
-            user: User = Depends(current_user), db: Session = Depends(get_db)):
+            user: User = Depends(staff_only), db: Session = Depends(get_db)):
     rows = db.scalars(select(AuditLog).where(AuditLog.company_id == user.company_id, AuditLog.id > after)
                       .order_by(AuditLog.id).limit(limit)).all()
     detailed = user.role in FULL_VISIBILITY
@@ -35,5 +43,5 @@ def changes(after: int = Query(default=0, ge=0), limit: int = Query(default=100,
 
 
 @router.get('/changes/cursor', summary='Cursor atual (para iniciar a sincronização sem histórico)')
-def cursor(user: User = Depends(current_user), db: Session = Depends(get_db)):
+def cursor(user: User = Depends(staff_only), db: Session = Depends(get_db)):
     return {'cursor': db.scalar(select(func.max(AuditLog.id)).where(AuditLog.company_id == user.company_id)) or 0}

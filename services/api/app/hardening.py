@@ -5,6 +5,7 @@ production installations should put equivalent limits at their edge proxy too.
 """
 import hashlib
 import hmac
+import os
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit
 from fastapi import HTTPException, Request
@@ -24,19 +25,22 @@ def validate_browser_request(request: Request):
     site=request.headers.get('sec-fetch-site','').lower()
     if site in ('cross-site','same-site'):
         raise HTTPException(403,'Requisição de outra origem bloqueada')
-    trusted=f'{request.url.scheme}://{request.url.netloc}'
+    trusted={f'{request.url.scheme}://{request.url.netloc}'}
+    # Origens do site publicadas pelo proprietário (ex.: https://rh.empresa.com.br), úteis quando o
+    # proxy reverso não repassa o cabeçalho Host original.
+    trusted|={o.strip().rstrip('/') for o in os.getenv('TRUSTED_ORIGINS','').split(',') if o.strip()}
     for key in ('origin','referer'):
         source=request.headers.get(key)
         if source:
             try:
                 part=urlsplit(source)
-                if f'{part.scheme}://{part.netloc}' != trusted:
+                if f'{part.scheme}://{part.netloc}' not in trusted:
                     raise HTTPException(403,'Origem inválida')
             except ValueError:
                 raise HTTPException(403,'Origem inválida')
             break
     token=request.cookies.get('tf_session')
-    if token and request.url.path!='/api/auth/login':
+    if token and not request.url.path.endswith(('/auth/login','/auth/token','/auth/refresh')):
         received=request.headers.get('x-tf-csrf','')
         if not hmac.compare_digest(received,csrf_value(token)):
             raise HTTPException(403,'Token de proteção de sessão ausente ou inválido')

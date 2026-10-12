@@ -179,3 +179,9 @@ def test_account_rate_limit_still_enforced(boot):
     c=TestClient(app)
     codes=[c.post('/api/v1/auth/token',json={'email':'forca.bruta@nexa.demo','password':'errada'}).status_code for _ in range(10)]
     assert codes[:8]==[401]*8 and 429 in codes[8:]
+
+
+def test_candidate_cannot_read_change_feed(boot):
+    cand,_=native('candidato@nexa.demo')
+    assert cand.get('/api/v1/changes').status_code==403
+    assert cand.get('/api/v1/changes/cursor').status_code==403

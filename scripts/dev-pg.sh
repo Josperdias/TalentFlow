@@ -16,7 +16,9 @@ case "${1:-start}" in
     if [ ! -f "$DATA/PG_VERSION" ]; then
       "${RUNAS[@]}" "$PGBIN/initdb" -D "$DATA" -U postgres --auth=trust -E UTF8 >/dev/null
     fi
-    "${RUNAS[@]}" "$PGBIN/pg_ctl" -D "$DATA" -o "-p $PORT -k /tmp -c listen_addresses=127.0.0.1" -l "$DATA/server.log" -w start >/dev/null
+    if ! "${RUNAS[@]}" "$PGBIN/pg_ctl" -D "$DATA" status >/dev/null 2>&1; then
+      "${RUNAS[@]}" "$PGBIN/pg_ctl" -D "$DATA" -o "-p $PORT -k /tmp -c listen_addresses=127.0.0.1" -l "$DATA/server.log" -w start >/dev/null
+    fi
     "$PGBIN/psql" -h 127.0.0.1 -p $PORT -U postgres -tc "select 1 from pg_database where datname='talentflow_test'" | grep -q 1 \
       || "$PGBIN/createdb" -h 127.0.0.1 -p $PORT -U postgres talentflow_test
     echo "postgresql+psycopg://postgres@127.0.0.1:$PORT/talentflow_test" ;;
