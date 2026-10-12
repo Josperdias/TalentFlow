@@ -144,7 +144,7 @@ jobs:
         run: |
           $v = $env:PRODUCT_VERSION
           Compress-Archive -Path dist/windows-publish/* -DestinationPath "dist/talentflow-windows-v$v-portable.zip"
-          Get-ChildItem dist -Filter "*.exe","*.zip" | ForEach-Object {
+          Get-ChildItem dist -File | Where-Object { $_.Extension -in '.exe', '.zip' } | ForEach-Object {
             $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
             "$h  $($_.Name)" | Out-File -FilePath "$($_.FullName).sha256" -Encoding ascii
             "$($_.Name)  $([int]($_.Length/1MB)) MB  sha256=$h"
