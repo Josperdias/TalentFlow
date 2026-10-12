@@ -50,7 +50,7 @@ jobs:
             echo
             echo "Verifique a integridade com \`SHA256SUMS.txt\`. O instalador do Windows e o APK de depuração **não são assinados** (veja STATUS)."
           } > notes.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.TAG }}
           name: TalentFlow People ${{ env.TAG }}
