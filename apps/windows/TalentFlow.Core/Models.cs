@@ -164,8 +164,47 @@ public sealed record MoveResult(
 public sealed record MeEnvelope([property: JsonPropertyName("user")] User User);
 public sealed record RevokeResult([property: JsonPropertyName("revoked")] int Revoked);
 
+public sealed record UpdateInfo(
+    [property: JsonPropertyName("available")] bool Available,
+    [property: JsonPropertyName("version")] string Version = "",
+    [property: JsonPropertyName("url")] string Url = "",
+    [property: JsonPropertyName("sha256")] string Sha256 = "",
+    [property: JsonPropertyName("size")] long Size = 0,
+    [property: JsonPropertyName("notes")] string Notes = "",
+    [property: JsonPropertyName("reason")] string Reason = "");
+
 public static class Versions
 {
+    /// <summary>Precedência semântica completa (inclui pré-lançamento): 1.3.0-rc.1 &lt; 1.3.0-rc.2 &lt; 1.3.0.</summary>
+    public static bool IsNewer(string current, string candidate) => Compare(candidate, current) > 0;
+
+    public static int Compare(string a, string b)
+    {
+        static (int[] Core, string[] Pre) Parse(string v)
+        {
+            v = v.Split('+')[0].TrimStart('v');
+            var dash = v.IndexOf('-');
+            var core = (dash < 0 ? v : v[..dash]).Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray();
+            return (core, dash < 0 ? [] : v[(dash + 1)..].Split('.'));
+        }
+        var (ca, pa) = Parse(a); var (cb, pb) = Parse(b);
+        for (var i = 0; i < Math.Max(ca.Length, cb.Length); i++)
+        {
+            var x = i < ca.Length ? ca[i] : 0; var y = i < cb.Length ? cb[i] : 0;
+            if (x != y) return x < y ? -1 : 1;
+        }
+        if (pa.Length == 0 && pb.Length == 0) return 0;
+        if (pa.Length == 0) return 1;   // sem sufixo é maior que pré-lançamento
+        if (pb.Length == 0) return -1;
+        for (var i = 0; i < Math.Min(pa.Length, pb.Length); i++)
+        {
+            var xn = int.TryParse(pa[i], out var x); var yn = int.TryParse(pb[i], out var y);
+            int c = xn && yn ? x.CompareTo(y) : xn ? -1 : yn ? 1 : string.CompareOrdinal(pa[i], pb[i]);
+            if (c != 0) return c < 0 ? -1 : 1;
+        }
+        return pa.Length.CompareTo(pb.Length);
+    }
+
     /// <summary>"1.3.0-rc.1" &lt; "1.3.0"? Compara só major.minor.patch (ignora sufixo).</summary>
     public static bool IsBelow(string current, string minimum)
     {

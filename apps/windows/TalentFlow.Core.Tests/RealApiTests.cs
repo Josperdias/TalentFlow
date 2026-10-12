@@ -62,4 +62,20 @@ public class RealApiTests
         await c.LogoutAsync();
         Assert.Null(store.Load());
     }
+
+    /// <summary>Cadeia completa de atualização contra a API real: manifesto -> download autenticado -> SHA-256. Exige TF_EXPECT_UPDATE=1 (o CI prepara o diretório).</summary>
+    [SkippableFact]
+    public async Task Atualizacao_real_manifesto_download_e_sha256()
+    {
+        Skip.If(Base is null || Environment.GetEnvironmentVariable("TF_EXPECT_UPDATE") != "1", "TF_API_URL/TF_EXPECT_UPDATE não definidos");
+        var c = Client("U");
+        await c.LoginAsync("admin@nexa.demo", Password);
+        var info = await Updater.CheckAsync(c, "1.0.0");
+        Assert.NotNull(info);
+        Assert.Equal("99.0.0", info!.Version);
+        Assert.Null(await Updater.CheckAsync(c, "99.0.0"));   // já está na versão publicada
+        var dir = Path.Combine(Path.GetTempPath(), "tf-real-upd-" + Guid.NewGuid().ToString("N"));
+        var file = await Updater.DownloadAndVerifyAsync(c, info, dir);
+        Assert.Equal(info.Size, new FileInfo(file).Length);
+    }
 }

@@ -44,12 +44,15 @@ jobs:
         run: |
           pip install -r requirements.txt
           alembic upgrade head
-          APP_ENV=development DEMO_SEED=true SERVE_LEGACY_WEB=false TF_LOGIN_IP_LIMIT=100000 \
+          # Atualização "publicada" de mentira (v99.0.0) para provar manifesto -> download autenticado -> SHA-256 de ponta a ponta.
+          mkdir -p /tmp/updates && head -c 300000 /dev/urandom > /tmp/updates/TalentFlow-Setup-v99.0.0.exe
+          printf '{"version":"99.0.0","file":"TalentFlow-Setup-v99.0.0.exe","sha256":"%s","notes":"teste"}' "$(sha256sum /tmp/updates/TalentFlow-Setup-v99.0.0.exe | cut -d' ' -f1)" > /tmp/updates/windows.json
+          TF_UPDATES_DIR=/tmp/updates APP_ENV=development DEMO_SEED=true SERVE_LEGACY_WEB=false TF_LOGIN_IP_LIMIT=100000 \
             nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/api.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/api/v1/health && break; sleep 1; done
       - name: Testes do Core (inclui RealApiTests contra a API real)
         working-directory: apps/windows
-        env: { TF_API_URL: 'http://127.0.0.1:8000' }
+        env: { TF_API_URL: 'http://127.0.0.1:8000', TF_EXPECT_UPDATE: '1' }
         run: dotnet test TalentFlow.Core.Tests/TalentFlow.Core.Tests.csproj --logger "trx;LogFileName=results.trx"
       - name: Conferir que a integração real NÃO foi pulada
         working-directory: apps/windows
@@ -59,7 +62,7 @@ jobs:
           s = open(glob.glob('TalentFlow.Core.Tests/TestResults/results.trx')[0], encoding='utf-8').read()
           real = re.findall(r'<UnitTestResult[^>]*testName="[^"]*RealApiTests[^"]*"[^>]*outcome="(\w+)"', s)
           print('RealApiTests:', real)
-          assert len(real) >= 3 and all(o == 'Passed' for o in real)
+          assert len(real) >= 4 and all(o == 'Passed' for o in real)
           PY
 
   app:
@@ -139,6 +142,44 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $iscc "/DAppVersion=$env:PRODUCT_VERSION" "/DPublishDir=$((Resolve-Path dist/windows-publish).Path)" apps/windows/installer/TalentFlow.iss
           if ($LASTEXITCODE -ne 0) { throw "Falha ao compilar o instalador" }
+      - name: Provar instalar e ATUALIZAR por cima (silencioso, por usuário)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          $pub = (Resolve-Path dist/windows-publish).Path
+          # Segundo instalador, só para o teste, com versão MAIOR (não entra nos artefatos).
+          & $iscc "/DAppVersion=99.0.0" "/DPublishDir=$pub" "/O$((Join-Path $PWD 'dist-upgrade-test'))" apps/windows/installer/TalentFlow.iss
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao compilar o instalador de teste" }
+          $dir = Join-Path $env:RUNNER_TEMP "TalentFlowInstalado"
+          $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B7C9C0E2-4F51-4C0E-9D6B-5A1F7E2D3A10}_is1"
+          $first = Get-ChildItem dist -Filter "TalentFlow-Setup-v*.exe" | Where-Object { $_.Name -notmatch 'v99' } | Select-Object -First 1
+          $p = Start-Process $first.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$dir`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Instalação falhou ($($p.ExitCode))" }
+          if (-not (Test-Path "$dir\TalentFlow.exe")) { throw "TalentFlow.exe não foi instalado" }
+          $v1 = (Get-ItemProperty $key).DisplayVersion; "Instalado: $v1"
+          if ($v1 -ne $env:PRODUCT_VERSION) { throw "Versão instalada inesperada: $v1" }
+          "dummy-orfao" | Out-File "$dir\orfao.dll"   # simula arquivo de uma versão antiga
+          $up = Get-ChildItem dist-upgrade-test -Filter "TalentFlow-Setup-v99*.exe" | Select-Object -First 1
+          $p = Start-Process $up.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS","/CURRENTUSER" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Atualização falhou ($($p.ExitCode))" }
+          $v2 = (Get-ItemProperty $key).DisplayVersion; "Depois da atualização: $v2"
+          if ($v2 -ne "99.0.0") { throw "A atualização por cima não trocou a versão ($v2)" }
+          if (Test-Path "$dir\orfao.dll") { throw "DLL órfã da versão anterior não foi removida" }
+          if (-not (Test-Path "$dir\TalentFlow.exe")) { throw "TalentFlow.exe sumiu após atualizar" }
+          $entries = Get-ChildItem "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" | Where-Object { $_.PSChildName -like "{B7C9C0E2*" }
+          if ($entries.Count -ne 1) { throw "Esperava 1 entrada de desinstalação, achei $($entries.Count)" }
+          $u = Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES" -Wait -PassThru
+          Start-Sleep -Seconds 3
+          if (Test-Path "$dir\TalentFlow.exe") { throw "Desinstalação não removeu o aplicativo" }
+          "Instalar -> atualizar por cima -> desinstalar: OK"
+          Remove-Item -Recurse -Force dist-upgrade-test
+      - name: Manifesto de atualização (windows.json) para o seu servidor
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist -Filter "TalentFlow-Setup-v*.exe" | Select-Object -First 1
+          $sha = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          [ordered]@{ version = $env:PRODUCT_VERSION; file = $exe.Name; sha256 = $sha; notes = "TalentFlow People $($env:PRODUCT_VERSION)" } | ConvertTo-Json | Out-File dist/windows.json -Encoding utf8
+          Get-Content dist/windows.json
       - name: Pacote portátil (.zip) e checksums
         shell: pwsh
         run: |
@@ -157,5 +198,6 @@ jobs:
             dist/TalentFlow-Setup-v*.exe.sha256
             dist/talentflow-windows-v*-portable.zip
             dist/talentflow-windows-v*-portable.zip.sha256
+            dist/windows.json
             screenshots/*.png
           if-no-files-found: warn

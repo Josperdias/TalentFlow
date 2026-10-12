@@ -24,6 +24,12 @@ public sealed class AccountPage : TfPage
         root.Children.Add(Ui.Text($"TalentFlow People {AppState.Version}", 14));
         root.Children.Add(Ui.Text(AppState.ServerBase ?? "", 12, "inkFaint"));
         root.Children.Add(Ui.Text($"Arquivos locais e registro de diagnóstico: {Diagnostics.Folder}", 12, "inkFaint"));
+        root.Children.Add(Ui.SecondaryButton("Verificar atualizações", async () =>
+        {
+            var has = await AppState.CheckUpdateAsync();
+            _message = has ? $"Versão {AppState.PendingUpdate!.Version} disponível: use \"Atualizar agora\" na barra no topo." : "Você já está na versão mais recente publicada pelo seu servidor.";
+            await ReloadAsync();
+        }));
 
         root.Children.Add(new Border { Height = 8 });
         root.Children.Add(Ui.Eyebrow("Sessões ativas"));

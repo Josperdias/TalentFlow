@@ -14,6 +14,8 @@ public sealed class ShellPage : Page
 
     /// <summary>Shell ativo (para páginas abrirem outras páginas no painel de conteúdo).</summary>
     public static ShellPage? Current { get; private set; }
+    private readonly Border _updateBar = new() { Visibility = Visibility.Collapsed };
+    private bool _updating;
     private readonly TextBlock _status = new() { FontSize = 12 };
     private readonly Microsoft.UI.Xaml.Shapes.Ellipse _dot = new() { Width = 8, Height = 8, VerticalAlignment = VerticalAlignment.Center };
 
@@ -79,16 +81,45 @@ public sealed class ShellPage : Page
         _nav.PaneFooter = foot;
 
         _nav.ItemInvoked += (_, e) => { if (e.InvokedItemContainer?.Tag is string tag) Go(tag); };
-        _nav.Content = _content;
+        var host = new Grid { RowDefinitions = { new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = new GridLength(1, GridUnitType.Star) } } };
+        host.Children.Add(_updateBar); Grid.SetRow(_content, 1); host.Children.Add(_content);
+        _nav.Content = host;
         Content = _nav;
 
         Loaded += (_, _) =>
         {
             AppState.ConnectionChanged += OnConnection; OnConnection();
+            AppState.UpdateChanged += RenderUpdateBar; RenderUpdateBar();
             _nav.SelectedItem = _nav.MenuItems[0]; Go((string)((NavigationViewItem)_nav.MenuItems[0]).Tag);
             AppState.StartSync();
         };
-        Unloaded += (_, _) => { AppState.ConnectionChanged -= OnConnection; AppState.Stop(); };
+        Unloaded += (_, _) => { AppState.ConnectionChanged -= OnConnection; AppState.UpdateChanged -= RenderUpdateBar; AppState.Stop(); };
+    }
+
+    private void RenderUpdateBar()
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            var u = AppState.PendingUpdate;
+            if (u is null || _updating) { if (u is null) _updateBar.Visibility = Visibility.Collapsed; return; }
+            var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            text.Children.Add(Ui.Text($"Nova versão {u.Version} disponível (você usa a {AppState.Version})", 14, "ink", Microsoft.UI.Text.FontWeights.Bold));
+            text.Children.Add(Ui.Text(string.IsNullOrWhiteSpace(u.Notes) ? "O aplicativo fecha, atualiza e reabre sozinho. Seus dados e sua sessão são mantidos." : u.Notes, 12, "inkMuted"));
+            var progress = new ProgressBar { Minimum = 0, Maximum = Math.Max(1, u.Size), Width = 160, Visibility = Visibility.Collapsed, VerticalAlignment = VerticalAlignment.Center };
+            var error = Ui.Text("", 12, "critical");
+            var go = Ui.PrimaryButton("Atualizar agora", () => { });
+            go.Click += async (_, _) =>
+            {
+                _updating = true; go.IsEnabled = false; go.Content = "Baixando…"; progress.Visibility = Visibility.Visible; error.Text = "";
+                var err = await AppState.InstallUpdateAsync(new Progress<long>(n => progress.Value = n));
+                if (err is not null) { _updating = false; go.IsEnabled = true; go.Content = "Tentar de novo"; progress.Visibility = Visibility.Collapsed; error.Text = err; }
+            };
+            var row = new Grid { ColumnSpacing = 16, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Auto } } };
+            var left = new StackPanel { Spacing = 4 }; left.Children.Add(text); left.Children.Add(error);
+            row.Children.Add(left); Grid.SetColumn(progress, 1); row.Children.Add(progress); Grid.SetColumn(go, 2); row.Children.Add(go);
+            _updateBar.Background = Ui.Brush("brandSoft"); _updateBar.BorderBrush = Ui.Brush("brand"); _updateBar.BorderThickness = new Thickness(0, 0, 0, 1);
+            _updateBar.Padding = new Thickness(32, 12, 32, 12); _updateBar.Child = row; _updateBar.Visibility = Visibility.Visible;
+        });
     }
 
     private void OnConnection()

@@ -213,3 +213,29 @@ def test_dashboard_trend_real_data_and_scope(boot):
     assert [p['month'] for p in tr['points']]==sorted(p['month'] for p in tr['points'])
     cand,_=native('candidato@nexa.demo')
     assert cand.get('/api/v1/dashboard/trend').status_code==403
+
+
+def test_client_updates_self_hosted_manifest(boot, tmp_path, monkeypatch):
+    """Atualização do Windows servida pelo próprio servidor: exige login, confere SHA-256 e só entrega o arquivo do manifesto."""
+    import hashlib, json
+    c,_=native()
+    anon=TestClient(app)
+    assert anon.get('/api/v1/client-updates/windows').status_code==401
+    monkeypatch.delenv('TF_UPDATES_DIR',raising=False)
+    assert c.get('/api/v1/client-updates/windows').json()['available'] is False
+    monkeypatch.setenv('TF_UPDATES_DIR',str(tmp_path))
+    assert c.get('/api/v1/client-updates/windows').json()['available'] is False  # sem manifesto
+    blob=b'MZ-instalador-de-teste'*100
+    (tmp_path/'TalentFlow-Setup-v9.9.9.exe').write_bytes(blob)
+    sha=hashlib.sha256(blob).hexdigest()
+    (tmp_path/'windows.json').write_text(json.dumps({'version':'9.9.9','file':'TalentFlow-Setup-v9.9.9.exe','sha256':sha,'notes':'teste'}))
+    r=c.get('/api/v1/client-updates/windows').json()
+    assert r['available'] and r['version']=='9.9.9' and r['sha256']==sha and r['size']==len(blob)
+    d=c.get(r['url']); assert d.status_code==200 and d.content==blob
+    assert c.get('/api/v1/client-updates/windows/download/outro.exe').status_code==404
+    trav=c.get('/api/v1/client-updates/windows/download/..%2Fwindows.json')
+    assert b'sha256' not in trav.content  # nunca entrega o manifesto nem arquivos fora do citado
+    (tmp_path/'windows.json').write_text(json.dumps({'version':'9.9.9','file':'TalentFlow-Setup-v9.9.9.exe','sha256':'0'*64}))
+    assert c.get('/api/v1/client-updates/windows').json()['available'] is False  # SHA não confere
+    (tmp_path/'windows.json').write_text(json.dumps({'version':'9.9.9','file':'../../etc/passwd','sha256':sha}))
+    assert c.get('/api/v1/client-updates/windows').json()['available'] is False  # nome de arquivo inválido

@@ -20,6 +20,9 @@ public static class AppState
     public static User? User { get; private set; }
     public static string? ServerBase { get; private set; }
     public static string? UpdateNotice { get; private set; }
+    /// <summary>Versão mais nova publicada no PRÓPRIO servidor (null = em dia ou nada publicado).</summary>
+    public static UpdateInfo? PendingUpdate { get; private set; }
+    public static event Action? UpdateChanged;
     public static Connection Connection { get; private set; } = Connection.Connecting;
     public static string Version { get; } =
         System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
@@ -97,11 +100,46 @@ public static class AppState
         catch { /* aviso é opcional */ }
     }
 
+    // ---- atualização do aplicativo (instalador servido pelo seu servidor, SHA-256 obrigatório) ----
+    private static DispatcherTimer? _updateTimer;
+
+    /// <summary>Consulta o servidor; retorna true se há versão mais nova que a em execução.</summary>
+    public static async Task<bool> CheckUpdateAsync()
+    {
+        try { PendingUpdate = Api is null ? null : await Updater.CheckAsync(Api, Version); }
+        catch (AuthExpiredException) { }
+        catch (Exception e) when (e is ApiException or NetworkException) { /* sem rede: mantém o que já sabíamos */ }
+        UpdateChanged?.Invoke();
+        return PendingUpdate is not null;
+    }
+
+    /// <summary>Baixa, confere o SHA-256, abre o instalador e encerra o aplicativo. Retorna uma mensagem se algo falhar.</summary>
+    public static async Task<string?> InstallUpdateAsync(IProgress<long>? progress = null)
+    {
+        var info = PendingUpdate; if (info is null || Api is null) return "Nenhuma atualização pendente.";
+        try
+        {
+            var path = await Updater.DownloadAndVerifyAsync(Api, info, Path.Combine(Path.GetTempPath(), "TalentFlowUpdate"), progress);
+            // /RELAUNCH=1: o instalador reabre o aplicativo ao terminar. Os dados e a sessão (DPAPI) ficam em %LOCALAPPDATA% e são preservados.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path, "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RELAUNCH=1") { UseShellExecute = true });
+            Application.Current.Exit();
+            return null;
+        }
+        catch (UpdateIntegrityException e) { Diagnostics.Log("UpdateIntegrity", e); return e.Message; }
+        catch (Exception e) when (e is ApiException or NetworkException) { return e.Message; }
+        catch (Exception e) { Diagnostics.Log("InstallUpdate", e); return "Não foi possível iniciar a atualização: " + e.Message; }
+    }
+
     // ---- sincronização ----
     public static void StartSync()
     {
         Stop();
         if (Api is null || User is null || User.Role == "candidate") { SetConnection(Connection.Online); return; }
+        _ = CheckUpdateAsync();
+        _updateTimer?.Stop();
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(6) };
+        _updateTimer.Tick += async (_, _) => await CheckUpdateAsync();
+        _updateTimer.Start();
         _feed = new ChangeFeed(Api);
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _timer.Tick += async (_, _) => await PollAsync();
@@ -112,7 +150,7 @@ public static class AppState
     /// <summary>Chamado por páginas quando a API informa que a sessão acabou.</summary>
     public static void ExpireSession() { Stop(); User = null; SignedOut?.Invoke(); }
 
-    public static void Stop() { _timer?.Stop(); _timer = null; _feed = null; }
+    public static void Stop() { _timer?.Stop(); _timer = null; _feed = null; _updateTimer?.Stop(); _updateTimer = null; }
 
     public static Task PokeAsync() => PollAsync();
 
