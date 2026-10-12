@@ -1,6 +1,24 @@
 package br.com.talentflow.people.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,14 +95,37 @@ fun TalentFlowRoot(vm: AppViewModel) {
     }
 }
 
+/** Fundo do acesso: navy com duas "luzes" violeta que derivam devagar (decoração; some com animações desligadas). */
+@Composable
+private fun AuthBackdrop() {
+    val drift = rememberInfiniteTransition(label = "drift")
+    val t by drift.animateFloat(0f, 1f, infiniteRepeatable(tween(14000, easing = LinearEasing), RepeatMode.Reverse), label = "t")
+    Canvas(Modifier.fillMaxSize()) {
+        drawRect(Brush.linearGradient(listOf(Color(0xFF0B1230), Color(0xFF151D4F)), Offset.Zero, Offset(size.width, size.height)))
+        drawCircle(Brush.radialGradient(listOf(Color(0x995846D4), Color.Transparent), Offset(size.width * (0.15f + 0.2f * t), size.height * 0.22f), size.width * 0.7f),
+            radius = size.width * 0.7f, center = Offset(size.width * (0.15f + 0.2f * t), size.height * 0.22f))
+        drawCircle(Brush.radialGradient(listOf(Color(0x80B27BF5), Color.Transparent), Offset(size.width * (0.95f - 0.2f * t), size.height * 0.92f), size.width * 0.8f),
+            radius = size.width * 0.8f, center = Offset(size.width * (0.95f - 0.2f * t), size.height * 0.92f))
+    }
+}
+
 @Composable
 private fun AuthFrame(title: String, content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.Center) {
-        Text("TALENTFLOW PEOPLE", style = MaterialTheme.typography.labelSmall, color = LocalTf.current.brand)
-        Spacer(Modifier.height(8.dp))
-        Text(title, style = MaterialTheme.typography.displaySmall)
-        Spacer(Modifier.height(24.dp))
-        content()
+    Box(Modifier.fillMaxSize()) {
+        AuthBackdrop()
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.Center) {
+            Text("TALENTFLOW PEOPLE", style = MaterialTheme.typography.labelSmall, color = Color(0xFFCFC6FF), modifier = Modifier.riseIn())
+            Spacer(Modifier.height(10.dp))
+            Text("Pessoas, da vaga à carreira, em um só registro.", style = MaterialTheme.typography.headlineSmall, color = Color.White, modifier = Modifier.riseIn(80))
+            Spacer(Modifier.height(24.dp))
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 16.dp, modifier = Modifier.fillMaxWidth().riseIn(160)) {
+                Column(Modifier.padding(24.dp)) {
+                    Text(title, style = MaterialTheme.typography.headlineMedium)
+                    Spacer(Modifier.height(18.dp))
+                    content()
+                }
+            }
+        }
     }
 }
 
@@ -101,8 +142,8 @@ private fun ServerScreen(vm: AppViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), isError = error != null)
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { busy = true; error = null; vm.setServer(address) { e -> busy = false; error = e } }, enabled = !busy && address.isNotBlank(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            Text(if (busy) "Verificando…" else "Continuar")
+        GradientButton(if (busy) "Verificando…" else "Continuar", enabled = !busy && address.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+            busy = true; error = null; vm.setServer(address) { e -> busy = false; error = e }
         }
     }
 }
@@ -121,8 +162,8 @@ private fun LoginScreen(vm: AppViewModel, message: String?) {
         OutlinedTextField(password, { password = it }, label = { Text("Senha") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { busy = true; error = null; vm.login(email, password) { e -> busy = false; error = e } }, enabled = !busy && email.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            Text(if (busy) "Entrando…" else "Entrar")
+        GradientButton(if (busy) "Entrando…" else "Entrar", enabled = !busy && email.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+            busy = true; error = null; vm.login(email, password) { e -> busy = false; error = e }
         }
         Spacer(Modifier.height(8.dp))
         Text(server ?: "", style = MaterialTheme.typography.bodySmall, color = LocalTf.current.inkFaint)
@@ -158,22 +199,38 @@ private fun MainScaffold(vm: AppViewModel, user: User) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                items.forEach { item ->
-                    NavigationBarItem(selected = route == item.route, onClick = { route = item.route; openJob = null },
-                        icon = { Icon(item.icon, contentDescription = null) }, label = { Text(item.label, maxLines = 1) })
+            val tf = LocalTf.current
+            Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Surface(shape = RoundedCornerShape(28.dp), color = tf.nav, shadowElevation = 14.dp, border = BorderStroke(1.dp, tf.navLine)) {
+                    NavigationBar(containerColor = Color.Transparent, windowInsets = WindowInsets(0, 0, 0, 0)) {
+                        items.forEach { item ->
+                            NavigationBarItem(selected = route == item.route, onClick = { route = item.route; openJob = null },
+                                icon = { Icon(item.icon, contentDescription = null) }, label = { Text(item.label, maxLines = 1) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = tf.navActiveInk, selectedTextColor = tf.navActiveInk, indicatorColor = tf.navActive,
+                                    unselectedIconColor = tf.navMuted, unselectedTextColor = tf.navMuted,
+                                ))
+                        }
+                    }
                 }
             }
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 val color = when (connection) { Connection.Online -> LocalTf.current.positive; Connection.Offline -> LocalTf.current.critical; Connection.Connecting -> LocalTf.current.inkFaint }
-                androidx.compose.foundation.Canvas(Modifier.size(8.dp)) { drawCircle(color) }
-                Spacer(Modifier.size(8.dp))
-                Text(when (connection) { Connection.Online -> "Sincronizado"; Connection.Offline -> "Sem conexão com o servidor"; Connection.Connecting -> "Conectando…" },
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 1.dp) {
+                    Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Canvas(Modifier.size(8.dp)) { drawCircle(color) }
+                        Spacer(Modifier.size(8.dp))
+                        Text(when (connection) { Connection.Online -> "Sincronizado"; Connection.Offline -> "Sem conexão com o servidor"; Connection.Connecting -> "Conectando…" },
+                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Spacer(Modifier.weight(1f))
                 Text(user.company, style = MaterialTheme.typography.bodySmall, color = LocalTf.current.inkFaint)
+                Spacer(Modifier.size(8.dp))
+                Avatar(user.name, 32)
             }
             if (notice != null) Box(Modifier.padding(horizontal = 16.dp)) { Banner(notice!!) }
             Box(Modifier.weight(1f).fillMaxWidth()) {

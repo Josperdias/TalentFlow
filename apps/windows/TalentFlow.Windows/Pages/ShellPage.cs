@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using TalentFlow.Windows.Services;
+using Windows.UI;
 
 namespace TalentFlow.Windows.Pages;
 
@@ -22,8 +24,32 @@ public sealed class ShellPage : Page
         Background = Ui.Brush("canvas");
         _nav.PaneDisplayMode = NavigationViewPaneDisplayMode.Left;
         _nav.IsSettingsVisible = false; _nav.IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed;
-        _nav.OpenPaneLength = 232; _nav.IsPaneToggleButtonVisible = false;
-        _nav.Background = Ui.Brush("surface");
+        _nav.OpenPaneLength = 256; _nav.IsPaneToggleButtonVisible = false;
+        _nav.Background = Ui.Brush("canvas");
+
+        // Painel lateral navy em gradiente, itens claros e seleção em violeta (tokens nav*).
+        var paneBg = Ui.Gradient(Ui.Palette["nav"], Color.FromArgb(255, 0x12, 0x1B, 0x44), vertical: true);
+        _nav.Resources["NavigationViewDefaultPaneBackground"] = paneBg;
+        _nav.Resources["NavigationViewExpandedPaneBackground"] = paneBg;
+        _nav.Resources["NavigationViewItemForeground"] = Ui.Brush("navInk");
+        _nav.Resources["NavigationViewItemForegroundPointerOver"] = new SolidColorBrush(Microsoft.UI.Colors.White);
+        _nav.Resources["NavigationViewItemForegroundPressed"] = new SolidColorBrush(Microsoft.UI.Colors.White);
+        _nav.Resources["NavigationViewItemForegroundSelected"] = Ui.Brush("navActiveInk");
+        _nav.Resources["NavigationViewItemForegroundSelectedPointerOver"] = Ui.Brush("navActiveInk");
+        _nav.Resources["NavigationViewItemForegroundSelectedPressed"] = Ui.Brush("navActiveInk");
+        _nav.Resources["NavigationViewItemBackgroundPointerOver"] = new SolidColorBrush(Color.FromArgb(24, 255, 255, 255));
+        _nav.Resources["NavigationViewItemBackgroundPressed"] = new SolidColorBrush(Color.FromArgb(36, 255, 255, 255));
+        _nav.Resources["NavigationViewItemBackgroundSelected"] = Ui.Brush("navActive");
+        _nav.Resources["NavigationViewItemBackgroundSelectedPointerOver"] = Ui.Brush("navActive");
+        _nav.Resources["NavigationViewItemBackgroundSelectedPressed"] = Ui.Brush("navActive");
+        _nav.Resources["NavigationViewSelectionIndicatorForeground"] = Ui.Brush("accent");
+
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(16, 18, 16, 8) };
+        var brandText = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        brandText.Children.Add(new TextBlock { Text = "TalentFlow", FontFamily = Ui.Serif, FontSize = 21, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) });
+        brandText.Children.Add(new TextBlock { Text = "PEOPLE", FontFamily = Ui.SansBold, FontSize = 10, CharacterSpacing = 280, Foreground = Ui.Brush("navMuted") });
+        brand.Children.Add(Ui.Mark(38)); brand.Children.Add(brandText);
+        _nav.PaneHeader = brand;
 
         void Add(string text, string tag, Symbol icon) => _nav.MenuItems.Add(new NavigationViewItem { Content = text, Tag = tag, Icon = new SymbolIcon(icon) });
         if (user.Role == "candidate") { Add("Candidaturas", "portal", Symbol.List); }
@@ -36,15 +62,20 @@ public sealed class ShellPage : Page
         }
         Add("Conta", "account", Symbol.Account);
 
-        var foot = new StackPanel { Padding = new Thickness(16, 8, 16, 12), Spacing = 6 };
-        var pulse = new Button { Padding = new Thickness(0), Background = Ui.Brush("surface"), BorderThickness = new Thickness(0) };
+        var foot = new StackPanel { Margin = new Thickness(12, 8, 12, 12), Spacing = 10 };
+        var pulse = new Button { Padding = new Thickness(12, 6, 12, 6), Background = Ui.Brush("navRaised"), BorderBrush = Ui.Brush("navLine"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(999), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left };
+        pulse.Resources["ButtonBackgroundPointerOver"] = Ui.Brush("navActive");
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; line.Children.Add(_dot); line.Children.Add(_status);
         pulse.Content = line; pulse.Click += async (_, _) => await AppState.PokeAsync();
         ToolTipService.SetToolTip(pulse, "Verificar agora");
         foot.Children.Add(pulse);
-        foot.Children.Add(Ui.Text(user.Name, 13, "ink", Microsoft.UI.Text.FontWeights.SemiBold));
-        foot.Children.Add(Ui.Text($"{user.Company} · {Roles.Label(user.Role)}", 12, "inkMuted"));
-        foot.Children.Add(Ui.Text($"v{AppState.Version}", 11, "inkFaint"));
+        var card = new Border { Background = Ui.Brush("navRaised"), BorderBrush = Ui.Brush("navLine"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(12) };
+        var who = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var whoText = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        whoText.Children.Add(new TextBlock { Text = user.Name, FontFamily = Ui.SansBold, FontWeight = Microsoft.UI.Text.FontWeights.Bold, FontSize = 13, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 150 });
+        whoText.Children.Add(new TextBlock { Text = $"{Roles.Label(user.Role)} · v{AppState.Version}", FontSize = 12, Foreground = Ui.Brush("navMuted") });
+        who.Children.Add(Ui.Avatar(user.Name, 36)); who.Children.Add(whoText);
+        card.Child = who; foot.Children.Add(card);
         _nav.PaneFooter = foot;
 
         _nav.ItemInvoked += (_, e) => { if (e.InvokedItemContainer?.Tag is string tag) Go(tag); };
@@ -70,7 +101,7 @@ public sealed class ShellPage : Page
                 Connection.Offline => ("Sem conexão com o servidor", Ui.Brush("critical")),
                 _ => ("Conectando…", Ui.Brush("inkFaint"))
             };
-            _status.Foreground = Ui.Brush("inkMuted");
+            _status.Foreground = Ui.Brush("navInk");
         });
     }
 

@@ -100,7 +100,7 @@ fun JobsScreen(vm: AppViewModel, user: User, onOpen: (Int) -> Unit) {
 @Composable
 private fun JobRow(job: Job, onClick: () -> Unit) {
     val (label, tone) = jobStatus(job.status)
-    Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(job.code, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -233,7 +233,7 @@ fun JobDetailScreen(vm: AppViewModel, user: User, jobId: Int, onBack: () -> Unit
 @Composable
 private fun ApplicationCard(app: ApplicationRow, stages: List<Stage>, canMove: Boolean, onMove: (Stage) -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
+    Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(app.candidate.name, style = MaterialTheme.typography.titleMedium)
             Text(app.candidate.title.ifBlank { app.candidate.location.ifBlank { "—" } }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

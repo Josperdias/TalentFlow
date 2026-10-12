@@ -1,6 +1,8 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using TalentFlow.Windows.Services;
+using Windows.UI;
 
 namespace TalentFlow.Windows.Pages;
 
@@ -14,13 +16,29 @@ public sealed class ConnectPage : Page
     {
         _message = message;
         Background = Ui.Brush("canvas");
-        var art = new StackPanel { Spacing = 16, VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(56), Background = Ui.Brush("brandStrong") };
-        art.Children.Add(new TextBlock { Text = "TALENTFLOW PEOPLE", FontFamily = Ui.Mono, FontSize = 12, CharacterSpacing = 100, Foreground = Ui.Brush("onBrand") });
-        art.Children.Add(new TextBlock { Text = "Pessoas, da vaga à carreira, em um só registro.", FontFamily = Ui.Serif, FontSize = 36, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Ui.Brush("onBrand"), TextWrapping = TextWrapping.Wrap, MaxWidth = 460 });
-        art.Children.Add(new TextBlock { Text = "Os mesmos dados no site, no Android e no Windows.", Foreground = Ui.Brush("onBrand"), Opacity = 0.85, FontSize = 15 });
-        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) }, new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 440 } } };
-        grid.Children.Add(art);
-        var right = new Grid { Padding = new Thickness(40) }; right.Children.Add(new ScrollViewer { VerticalAlignment = VerticalAlignment.Center, Content = _form });
+        var art = new StackPanel { Spacing = 18, VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(64) };
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(0, 0, 0, 24) };
+        brand.Children.Add(Ui.Mark(44));
+        brand.Children.Add(new TextBlock { Text = "TalentFlow People", FontFamily = Ui.Serif, FontSize = 24, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), VerticalAlignment = VerticalAlignment.Center });
+        art.Children.Add(brand);
+        art.Children.Add(new TextBlock { Text = "RECRUTAMENTO · PESSOAS · DESENVOLVIMENTO", FontFamily = Ui.SansBold, FontSize = 11, CharacterSpacing = 200, Foreground = new SolidColorBrush(Color.FromArgb(255, 0xCF, 0xC6, 0xFF)) });
+        art.Children.Add(new TextBlock { Text = "Pessoas, da vaga à carreira, em um só registro.", FontFamily = Ui.Serif, FontSize = 46, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), TextWrapping = TextWrapping.Wrap, MaxWidth = 520 });
+        art.Children.Add(new TextBlock { Text = "Os mesmos dados no site, no Android e no Windows: o que uma pessoa altera aparece para as outras em segundos.", FontSize = 16, MaxWidth = 480, TextWrapping = TextWrapping.Wrap, Foreground = new SolidColorBrush(Color.FromArgb(255, 0xDC, 0xE1, 0xF7)) });
+        foreach (var point in new[] { "Sincronização entre todos os aplicativos", "Permissões e dados separados por empresa", "Conflitos de edição nunca sobrescrevem em silêncio" })
+        {
+            art.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(28, 255, 255, 255)), BorderBrush = new SolidColorBrush(Color.FromArgb(52, 255, 255, 255)), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(14), Padding = new Thickness(16, 10, 16, 10), HorizontalAlignment = HorizontalAlignment.Left,
+                Child = new TextBlock { Text = point, FontFamily = Ui.SansSemiBold, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 14, Foreground = new SolidColorBrush(Microsoft.UI.Colors.White) }
+            }.RiseIn(300 + art.Children.Count * 60));
+        }
+        var hero = new Grid { Background = Ui.Gradient(Color.FromArgb(255, 0x0B, 0x12, 0x30), Color.FromArgb(255, 0x4A, 0x3B, 0xC8)) };
+        hero.Children.Add(art);
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) }, new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 460 } } };
+        grid.Children.Add(hero);
+        var card = Ui.Panel(_form, new Thickness(36)); card.MaxWidth = 440; card.VerticalAlignment = VerticalAlignment.Center; card.HorizontalAlignment = HorizontalAlignment.Center;
+        var right = new Grid { Padding = new Thickness(40) }; right.Children.Add(new ScrollViewer { VerticalAlignment = VerticalAlignment.Center, Content = card.RiseIn(150) });
         Grid.SetColumn(right, 1); grid.Children.Add(right);
         Content = grid;
         Loaded += (_, _) => Render();
@@ -34,7 +52,7 @@ public sealed class ConnectPage : Page
 
     private void RenderServer()
     {
-        _form.Children.Add(Ui.Serifed("Conectar ao servidor", 26));
+        _form.Children.Add(Ui.Serifed("Conectar ao servidor", 30));
         _form.Children.Add(Ui.Text("Informe o endereço do TalentFlow da sua empresa, o mesmo do site (por exemplo rh.suaempresa.com.br).", 14, "inkMuted"));
         var address = new TextBox { Header = "Endereço do servidor", PlaceholderText = "rh.suaempresa.com.br" };
         var error = new StackPanel();
@@ -54,7 +72,7 @@ public sealed class ConnectPage : Page
 
     private void RenderLogin()
     {
-        _form.Children.Add(Ui.Serifed("Entrar", 26));
+        _form.Children.Add(Ui.Serifed("Entrar", 30));
         if (!string.IsNullOrEmpty(_message)) _form.Children.Add(Ui.Banner(_message!, "", "critical"));
         var email = new TextBox { Header = "E-mail" };
         var password = new PasswordBox { Header = "Senha" };

@@ -31,6 +31,16 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 | C# `Core` | 20 unitários + 3 contra a **API real** (mesmos cenários) | .NET 8 local e CI |
 | Política "sem WebView/Electron/segredos" | verde | CI |
 
+## Identidade visual "Aurora" (a pedido: mais próxima do protótipo, mais premium)
+- **Site:** reescrito e **visto em capturas reais** (Chromium, `docs/screenshots/`): menu lateral navy, barra superior, indicadores com cor de
+  significado, funil animado, rosca SVG, pipeline com avatares, login com fundo animado, diálogos com "pop". E2E 16/16 mantido.
+  Contraste AA conferido por script (`check-contrast.mjs`, roda no CI). Dark mode: tokens existem, **não revisado visualmente**.
+- **Android e Windows:** mesmo vocabulário (tokens, fontes Plus Jakarta Sans + Fraunces embutidas, formas, gradientes, animações de entrada,
+  rosca e barras animadas). **Só compilam no CI e eu não vi nenhuma tela deles**: o ajuste fino de espaçamento/tipografia nesses dois
+  depende de você abrir o app e apontar o que destoa. No Windows, as fontes são carregadas por `ms-appx:///` e, se o Windows não
+  resolver o arquivo, a interface cai para Segoe UI (não quebra, mas perde a tipografia). Isso **não foi verificado em máquina Windows**.
+- **Ainda não há:** gráfico de evolução temporal (a API não fornece série histórica; não vamos inventar), dark mode revisado, ilustrações.
+
 ## Android
 - **Feito e testado:** `:core` (cliente HTTP, refresh, `If-Match`/409, feed de sync) em JVM, local e CI, incluindo a API real.
 - **Escrito, compilação só no CI:** `:app` (Compose): servidor configurável, login, visão geral, vagas + pipeline com mover/editar,

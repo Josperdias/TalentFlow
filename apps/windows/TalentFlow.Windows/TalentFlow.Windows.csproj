@@ -32,6 +32,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\talentflow.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TalentFlow.Core\TalentFlow.Core.csproj" />

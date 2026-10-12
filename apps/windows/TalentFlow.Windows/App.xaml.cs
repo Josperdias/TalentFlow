@@ -19,6 +19,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        Resources["ContentControlThemeFontFamily"] = Ui.Sans;
         MainWindow = new MainWindow();
         MainWindow.Activate();
     }

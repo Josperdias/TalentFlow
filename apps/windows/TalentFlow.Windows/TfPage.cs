@@ -39,6 +39,7 @@ public abstract class TfPage : Page
 
     protected async Task ReloadAsync(bool first = false)
     {
+        Ui.Entrance = first || !_hasContent;
         if (first || !_hasContent) { _body.Children.Clear(); _body.Children.Add(Ui.Loading()); }
         try
         {

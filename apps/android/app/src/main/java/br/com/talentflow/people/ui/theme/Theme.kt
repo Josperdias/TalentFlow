@@ -9,37 +9,54 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.talentflow.people.R
 
 /** Paleta própria do TalentFlow (tokens compartilhados com web e Windows) além do que o Material 3 cobre. */
 val LocalTf = staticCompositionLocalOf { TfTokens.Light }
 
-private val TfShapes = Shapes(
-    extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(2.dp),
-    small = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-    medium = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-    large = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
-    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+/** Plus Jakarta Sans (interface) e Fraunces (títulos e marca): as mesmas famílias do site, embutidas no app (OFL). */
+val Jakarta = FontFamily(
+    Font(R.font.plus_jakarta_sans_regular, FontWeight.Normal),
+    Font(R.font.plus_jakarta_sans_medium, FontWeight.Medium),
+    Font(R.font.plus_jakarta_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.plus_jakarta_sans_bold, FontWeight.Bold),
+    Font(R.font.plus_jakarta_sans_extrabold, FontWeight.ExtraBold),
+)
+val Fraunces = FontFamily(
+    Font(R.font.fraunces_semibold, FontWeight.SemiBold),
+    Font(R.font.fraunces_semibold, FontWeight.Normal),
+    Font(R.font.fraunces_semibold, FontWeight.Bold),
 )
 
-/** Serifa (títulos e números) + sans do sistema (interface) + mono (rótulos e códigos): mesma hierarquia do site. */
+private val TfShapes = Shapes(
+    extraSmall = RoundedCornerShape(TfTokens.RADIUS_SM.dp),
+    small = RoundedCornerShape(TfTokens.RADIUS_MD.dp),
+    medium = RoundedCornerShape(TfTokens.RADIUS_LG.dp),
+    large = RoundedCornerShape(TfTokens.RADIUS_XL.dp),
+    extraLarge = RoundedCornerShape(28.dp),
+)
+
 private val TfTypography = Typography(
-    displaySmall = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 32.sp, lineHeight = 38.sp),
-    headlineMedium = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp),
-    headlineSmall = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 28.sp),
-    titleLarge = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp),
-    titleMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 16.sp, lineHeight = 22.sp),
-    titleSmall = TextStyle(fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
-    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontSize = 12.sp, lineHeight = 16.sp),
-    labelLarge = TextStyle(fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
-    labelMedium = TextStyle(fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
-    labelSmall = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 1.sp),
+    displayMedium = TextStyle(fontFamily = Jakarta, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 38.sp, letterSpacing = (-1).sp),
+    displaySmall = TextStyle(fontFamily = Fraunces, fontWeight = FontWeight.SemiBold, fontSize = 34.sp, lineHeight = 40.sp, letterSpacing = (-0.5).sp),
+    headlineMedium = TextStyle(fontFamily = Fraunces, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 34.sp, letterSpacing = (-0.4).sp),
+    headlineSmall = TextStyle(fontFamily = Fraunces, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 28.sp),
+    titleLarge = TextStyle(fontFamily = Fraunces, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp),
+    titleMedium = TextStyle(fontFamily = Jakarta, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 22.sp),
+    titleSmall = TextStyle(fontFamily = Jakarta, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
+    bodyLarge = TextStyle(fontFamily = Jakarta, fontSize = 16.sp, lineHeight = 24.sp),
+    bodyMedium = TextStyle(fontFamily = Jakarta, fontSize = 14.sp, lineHeight = 21.sp),
+    bodySmall = TextStyle(fontFamily = Jakarta, fontSize = 12.sp, lineHeight = 17.sp),
+    labelLarge = TextStyle(fontFamily = Jakarta, fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 20.sp),
+    labelMedium = TextStyle(fontFamily = Jakarta, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 16.sp),
+    labelSmall = TextStyle(fontFamily = Jakarta, fontWeight = FontWeight.Bold, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 1.6.sp),
 )
 
 @Composable
