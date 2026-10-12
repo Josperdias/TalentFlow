@@ -10,7 +10,7 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 | API v1 sobre PostgreSQL | **pronta para teste**; não auditada | 37 testes (PG 16 real e SQLite); CI verde |
 | Migrações Alembic | **validadas** | subir/`check`/descer/subir; upgrade de banco v1.2 **com dados** |
 | Site (ZIP compilado) | **validado** | E2E 16/16 em Chromium, sobre o ZIP descompactado, API e PG reais (local e CI) |
-| Android nativo (Kotlin/Compose) | APK de **depuração** compila no CI; teste de interface em emulador **em diagnóstico** | `:core` testado; ver "Android" |
+| Android nativo (Kotlin/Compose) | APK de **depuração** compila no CI; **teste de interface em emulador passa** (login, criar vaga, vaga de outro cliente aparece) | run 38310488095 (commit 6928806); `:core` testado |
 | Windows nativo (C#/WinUI 3) | **compila, publica e gera instalador no CI** (não assinado); nunca usado por uma pessoa | `Core` testado; instalador 42 MB + zip portátil 62 MB com SHA-256 (run 38299557063) |
 | Servidor em contêineres | **validado no CI** (job `compose`: subir, provisionar admin, login, backup, apagar, restaurar) | CI verde |
 | GitHub: CI, release (rascunho), auto-merge | workflows prontos e executando | **proteção de `main` NÃO configurada** (ver pendências) |
@@ -48,8 +48,9 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 - **Escrito, compilação só no CI:** `:app` (Compose): servidor configurável, login, visão geral, vagas + pipeline com mover/editar,
   candidatos, pessoas (colaboradores, PDI, ausências), conta/sessões, portal do candidato; tokens no Android Keystore (AES-GCM).
 - **Por que não compilei aqui:** o ambiente bloqueia `dl.google.com` (AGP/androidx). Cada erro de compilação só aparece no CI.
-- **Nunca executado em aparelho ou emulador.** Não há captura de tela real do app Android. Login e sincronização no Android foram
-  provados na camada `:core`, **não** na interface.
+- **Executado em emulador (API 34, CI):** o teste de interface Compose faz login pela tela, cria uma vaga, e uma vaga criada por outro
+  cliente aparece sem recarregar. Isso achou e corrigiu um bug real (vaga nova ficava acima da área visível da lista). **Nunca testado em
+  aparelho físico**, e eu não vi as capturas (o artefato não é baixável daqui).
 - Assinatura: o APK de release assinado só é gerado se os segredos `TF_KEYSTORE_BASE64`, `TF_KEYSTORE_PASSWORD`, `TF_KEY_ALIAS`,
   `TF_KEY_PASSWORD` existirem. **Não existem**; portanto só o APK de **depuração** (rotulado) é gerado.
 - R8/minify está desligado até haver teste em aparelho. `minSdk 26` (Android 8.0), `targetSdk 35`.
