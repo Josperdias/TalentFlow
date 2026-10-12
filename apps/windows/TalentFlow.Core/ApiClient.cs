@@ -158,6 +158,7 @@ public sealed class ApiClient
 public static class Api
 {
     public static Task<Dashboard> DashboardAsync(this ApiClient c) => c.GetAsync<Dashboard>("/dashboard");
+    public static Task<Trend> TrendAsync(this ApiClient c) => c.GetAsync<Trend>("/dashboard/trend");
     public static Task<Insights> InsightsAsync(this ApiClient c) => c.GetAsync<Insights>("/workforce/insights");
     public static Task<List<Job>> JobsAsync(this ApiClient c, string query = "") => c.GetAsync<List<Job>>("/jobs?q=" + Uri.EscapeDataString(query));
     public static Task<JobDetail> JobDetailAsync(this ApiClient c, int id) => c.GetAsync<JobDetail>($"/jobs/{id}");

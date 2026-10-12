@@ -1932,6 +1932,26 @@
         ]
       }
     },
+    "/api/v1/dashboard/trend": {
+      "get": {
+        "description": "Candidaturas por mês (data de inscrição) e contratações por mês do último movimento. Só dados reais, no mesmo escopo do painel.",
+        "operationId": "dashboard_trend_v1_api_v1_dashboard_trend_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Dashboard Trend V1",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "health_api_v1_health_get",

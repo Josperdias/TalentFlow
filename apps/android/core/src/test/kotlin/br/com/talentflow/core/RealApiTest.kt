@@ -28,6 +28,8 @@ class RealApiTest {
         assertTrue("empresas não podem compartilhar vagas", nexaJobs.map { it.id }.intersect(orbeJobs.map { it.id }.toSet()).isEmpty())
         try { orbe.jobDetail(nexaJobs.first().id); fail("Orbe leu vaga da Nexa") } catch (e: ApiException) { assertEquals(404, e.status) }
         assertTrue(nexa.health().apiVersion.isNotBlank())
+        val trend = nexa.trend()
+        assertTrue("evolução mensal real", trend.points.isNotEmpty() && trend.totalApplications == trend.points.sumOf { it.applications })
     }
 
     @Test fun `criar no aparelho A aparece no aparelho B e conflito e detectado`() = runBlocking {

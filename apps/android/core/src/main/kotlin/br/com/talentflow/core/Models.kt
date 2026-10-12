@@ -53,6 +53,17 @@ data class NamedCount(val name: String, val value: Int)
 data class Dashboard(val metrics: DashboardMetrics, val stages: List<NamedCount> = emptyList())
 
 @Serializable
+data class TrendPoint(val month: String, val applications: Int = 0, val hired: Int = 0)
+
+@Serializable
+data class Trend(
+    val points: List<TrendPoint> = emptyList(),
+    @SerialName("total_applications") val totalApplications: Int = 0,
+    @SerialName("total_hired") val totalHired: Int = 0,
+    val note: String = "",
+)
+
+@Serializable
 data class Employee(
     val id: Int, val name: String, @SerialName("employee_code") val employeeCode: String = "",
     val department: String = "", @SerialName("job_title") val jobTitle: String = "",

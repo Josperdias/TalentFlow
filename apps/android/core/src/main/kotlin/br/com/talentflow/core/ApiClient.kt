@@ -158,6 +158,7 @@ class ApiClient(
 
 // ---- operações de domínio (mesmos endpoints do site e do Windows) ----
 suspend fun ApiClient.dashboard() = get("/dashboard", Dashboard.serializer())
+suspend fun ApiClient.trend() = get("/dashboard/trend", Trend.serializer())
 suspend fun ApiClient.insights() = get("/workforce/insights", Insights.serializer())
 suspend fun ApiClient.jobs(query: String = "") = list("/jobs?q=${java.net.URLEncoder.encode(query, "UTF-8")}", Job.serializer())
 suspend fun ApiClient.jobDetail(id: Int) = get("/jobs/$id", JobDetail.serializer())

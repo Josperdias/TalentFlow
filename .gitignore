@@ -25,3 +25,4 @@ obj/
 # release output
 dist/
 *.log
+apps/android/core/build/

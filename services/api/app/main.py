@@ -482,7 +482,27 @@ def dashboard(user:User=Depends(allowed(*ROLE_VIEW)),db:Session=Depends(get_db))
     hired=[a for a in apps if a.status=='hired']
     delays=[(a.last_activity_at.replace(tzinfo=timezone.utc)-a.created_at.replace(tzinfo=timezone.utc)).days for a in hired]
     today=datetime.now().strftime('%Y-%m-%d')
-    return {'metrics':{'jobs_open':sum(j.status=='open' for j in jobs),'jobs_approval':sum(j.status=='approval' for j in jobs),'candidates_active':sum(a.status=='active' for a in apps),'hired':len(hired),'rejected':sum(a.status=='rejected' for a in apps),'interviews':sum(i.status in ('scheduled','confirmed') for i in ints),'avg_time_hire':round(sum(delays)/len(delays),1) if delays else 0,'conversion':round(100*len(hired)/len(apps),1) if apps else 0,'pending_tasks':len(tasks),'late_jobs':sum(j.status=='open' and j.due_date and j.due_date<today for j in jobs)},'sources':[{'name':name,'value':count} for name,count in source_counts.most_common()],'stages':[{'name':name,'value':count} for name,count in stage_counts.most_common()],'by_job':[{'name':j.title,'value':sum(a.job_id==j.id for a in apps)} for j in jobs]}
+    return {'metrics':{'jobs_open':sum(j.status=='open' for j in jobs),'jobs_approval':sum(j.status=='approval' for j in jobs),'candidates_active':sum(a.status=='active' for a in apps),'hired':len(hired),'rejected':sum(a.status=='rejected' for a in apps),'interviews':sum(i.status in ('scheduled','confirmed') for i in ints),'avg_time_hire':round(sum(delays)/len(delays),1) if delays else 0,'conversion':round(100*len(hired)/len(apps),1) if apps else 0,'pending_tasks':len(tasks),'late_jobs':sum(1 for j in jobs if j.status=='open' and j.due_date and j.due_date<today)},'sources':[{'name':name,'value':count} for name,count in source_counts.most_common()],'stages':[{'name':name,'value':count} for name,count in stage_counts.most_common()],'by_job':[{'name':j.title,'value':sum(a.job_id==j.id for a in apps)} for j in jobs]}
+
+@app.get('/api/dashboard/trend')
+def dashboard_trend(user:User=Depends(allowed(*ROLE_VIEW)),db:Session=Depends(get_db)):
+    """Candidaturas por mês (data de inscrição) e contratações por mês do último movimento. Só dados reais, no mesmo escopo do painel."""
+    if user.role in ('admin','recruiter'):
+        apps=db.scalars(select(Application).where(Application.company_id==user.company_id)).all()
+    else:
+        permit=accessible_app_ids(db,user)
+        apps=db.scalars(select(Application).where(Application.company_id==user.company_id,Application.id.in_(permit))).all()
+    if not apps:return {'points':[],'total_applications':0,'total_hired':0,'note':'Sem candidaturas para montar a evolução.'}
+    now_=datetime.now(timezone.utc)
+    def ym(d):
+        d=d.replace(tzinfo=timezone.utc) if d.tzinfo is None else d
+        return d.year*12+d.month-1
+    last=now_.year*12+now_.month-1
+    first=max(min(ym(a.created_at) for a in apps),last-11)
+    created=Counter(ym(a.created_at) for a in apps if ym(a.created_at)>=first)
+    hired=Counter(ym(a.last_activity_at or a.created_at) for a in apps if a.status=='hired' and ym(a.last_activity_at or a.created_at)>=first)
+    pts=[{'month':f'{m//12:04d}-{m%12+1:02d}','applications':created.get(m,0),'hired':hired.get(m,0)} for m in range(first,last+1)]
+    return {'points':pts,'total_applications':sum(p['applications'] for p in pts),'total_hired':sum(p['hired'] for p in pts),'note':'Contratações são contadas no mês do último movimento da candidatura (a data exata da contratação não é registrada).'}
 
 @app.get('/api/automations')
 def automations(user:User=Depends(allowed(*ROLE_EDIT)),db:Session=Depends(get_db)):

@@ -7,7 +7,7 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 
 | Entrega | Estado | Evidência |
 |---|---|---|
-| API v1 sobre PostgreSQL | **pronta para teste**; não auditada | 36 testes (PG 16 real e SQLite); CI verde |
+| API v1 sobre PostgreSQL | **pronta para teste**; não auditada | 37 testes (PG 16 real e SQLite); CI verde |
 | Migrações Alembic | **validadas** | subir/`check`/descer/subir; upgrade de banco v1.2 **com dados** |
 | Site (ZIP compilado) | **validado** | E2E 16/16 em Chromium, sobre o ZIP descompactado, API e PG reais (local e CI) |
 | Android nativo (Kotlin/Compose) | APK de **depuração** compila no CI; teste de interface em emulador **em diagnóstico** | `:core` testado; ver "Android" |
@@ -21,7 +21,7 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
 
 | Teste | Quantidade / resultado | Ambiente |
 |---|---|---|
-| API pytest (18 herdados + 18 novos) | 36 aprovados | PostgreSQL 16.15 local e GitHub `ubuntu-latest` + serviço PG 16; também SQLite |
+| API pytest (18 herdados + 18 novos) | 37 aprovados | PostgreSQL 16.15 local e GitHub `ubuntu-latest` + serviço PG 16; também SQLite |
 | Baseline v1.2 antes de mexer | 18/18 em SQLite; **em PostgreSQL passou a rodar de verdade só agora** (o `conftest` forçava SQLite) | local |
 | Alembic | `0001` (schema v1.2) -> `0002`; ciclo completo; `alembic check` sem deriva | PG 16 local e CI |
 | Produção (`APP_ENV=production`) | recusa subir sem migrações; sem HTML, sem `/workspace`, sem contas demo; login do 1º admin criado por script | local |
@@ -39,7 +39,9 @@ ou um relatório, vale o que está aqui. Números vêm de execuções reais, com
   rosca e barras animadas). **Só compilam no CI e eu não vi nenhuma tela deles**: o ajuste fino de espaçamento/tipografia nesses dois
   depende de você abrir o app e apontar o que destoa. No Windows, as fontes são carregadas por `ms-appx:///` e, se o Windows não
   resolver o arquivo, a interface cai para Segoe UI (não quebra, mas perde a tipografia). Isso **não foi verificado em máquina Windows**.
-- **Ainda não há:** gráfico de evolução temporal (a API não fornece série histórica; não vamos inventar), dark mode revisado, ilustrações.
+- **Evolução de candidaturas:** gráfico de linha/área com dados **reais** (`GET /api/v1/dashboard/trend`: candidaturas por mês de inscrição; contratações pelo mês do último movimento, porque a data exata da contratação não é gravada). Interativo (mouse/teclado), animado; sparklines nos indicadores; números que sobem; seletor de tema claro/escuro/auto (dark ainda **não revisado visualmente**).
+- **Bug real achado no caminho e corrigido:** `/dashboard` quebrava (500) quando uma vaga aberta tinha prazo vazio.
+- **Ainda não há:** filtros do painel do protótipo (período/área/vaga), dark mode revisado, ilustrações.
 
 ## Android
 - **Feito e testado:** `:core` (cliente HTTP, refresh, `If-Match`/409, feed de sync) em JVM, local e CI, incluindo a API real.

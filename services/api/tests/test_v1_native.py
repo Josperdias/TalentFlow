@@ -200,3 +200,16 @@ def test_public_jobs_are_scoped_per_company_in_v1(boot):
     assert nexa and all(j['company']==nexa[0]['company'] for j in nexa)
     assert not ({j['id'] for j in nexa} & {j['id'] for j in orbe})
     assert c.get('/api/v1/public/jobs',params={'company':'inexistente'}).json()==[]
+
+
+def test_dashboard_trend_real_data_and_scope(boot):
+    """A evolução mensal usa só registros reais e respeita o escopo: soma = candidaturas visíveis ao papel."""
+    c,_=native()
+    d=c.get('/api/v1/dashboard').json()['metrics']
+    tr=c.get('/api/v1/dashboard/trend').json()
+    assert tr['points'] and len(tr['points'])<=12
+    assert all(set(p)=={'month','applications','hired'} for p in tr['points'])
+    assert tr['total_applications']==d['candidates_active']+d['hired']+d['rejected']
+    assert [p['month'] for p in tr['points']]==sorted(p['month'] for p in tr['points'])
+    cand,_=native('candidato@nexa.demo')
+    assert cand.get('/api/v1/dashboard/trend').status_code==403

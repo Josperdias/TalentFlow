@@ -70,6 +70,17 @@ public sealed record Dashboard(
     [property: JsonPropertyName("metrics")] DashboardMetrics Metrics,
     [property: JsonPropertyName("stages")] List<NamedCount> Stages);
 
+public sealed record TrendPoint(
+    [property: JsonPropertyName("month")] string Month,
+    [property: JsonPropertyName("applications")] int Applications = 0,
+    [property: JsonPropertyName("hired")] int Hired = 0);
+
+public sealed record Trend(
+    [property: JsonPropertyName("points")] List<TrendPoint> Points,
+    [property: JsonPropertyName("total_applications")] int TotalApplications = 0,
+    [property: JsonPropertyName("total_hired")] int TotalHired = 0,
+    [property: JsonPropertyName("note")] string Note = "");
+
 public sealed record Employee(
     [property: JsonPropertyName("id")] int Id,
     [property: JsonPropertyName("name")] string Name,

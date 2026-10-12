@@ -1,9 +1,11 @@
+import { useLayoutEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth, useSync } from '../state';
 import { ROLE_LABEL } from '../format';
 import type { Role } from '../api/types';
 import { Icon, type IconName } from './icons';
 import { Avatar } from './viz';
+import { usePointerSpotlight, useTheme } from './motion';
 
 interface Item { to: string; label: string; icon: IconName; roles: Role[]; group: string }
 const ITEMS: Item[] = [
@@ -39,6 +41,21 @@ export default function Shell() {
   const { user } = useAuth();
   const { connection, lastSync, poke } = useSync();
   const { pathname } = useLocation();
+  const [theme, cycleTheme] = useTheme();
+  const nav = useRef<HTMLElement>(null);
+  usePointerSpotlight();
+  // Pílula de seleção que desliza até o item ativo (posição medida; no celular desliza na horizontal).
+  useLayoutEffect(() => {
+    const n = nav.current; if (!n) return;
+    const place = () => {
+      const a = n.querySelector<HTMLElement>('a[aria-current="page"]');
+      if (!a) { n.style.setProperty('--pill-o', '0'); return; }
+      n.style.setProperty('--pill-y', `${a.offsetTop}px`); n.style.setProperty('--pill-h', `${a.offsetHeight}px`);
+      n.style.setProperty('--pill-x', `${a.offsetLeft}px`); n.style.setProperty('--pill-w', `${a.offsetWidth}px`); n.style.setProperty('--pill-o', '1');
+    };
+    place(); addEventListener('resize', place);
+    return () => removeEventListener('resize', place);
+  }, [pathname, user?.role]);
   if (!user) return null;
   const items = ITEMS.filter(i => i.roles.includes(user.role));
   const groups = [...new Set(items.map(i => i.group))];
@@ -48,7 +65,8 @@ export default function Shell() {
       <a className="skip" href="#conteudo">Ir para o conteúdo</a>
       <aside className="rail">
         <div className="brand"><Mark size={38} /><div><b>TalentFlow</b><small>People</small></div></div>
-        <nav className="nav" aria-label="Principal">
+        <nav className="nav" aria-label="Principal" ref={nav}>
+          <span className="nav-pill" aria-hidden="true" />
           {groups.map(g => (
             <div key={g}>
               <h2>{g}</h2>
@@ -63,11 +81,16 @@ export default function Shell() {
       <div className="stage">
         <header className="topbar">
           <div className="crumb" aria-hidden="true"><span>{user.company}</span><i>/</i><b>{crumb(pathname, items)}</b></div>
+          <div className="top-actions">
+          <button className="chip theme" onClick={cycleTheme} title={`Tema: ${theme === 'auto' ? 'automático' : theme === 'light' ? 'claro' : 'escuro'} (clique para alternar)`} aria-label={`Tema: ${theme === 'auto' ? 'automático' : theme === 'light' ? 'claro' : 'escuro'}. Alternar`}>
+            <Icon name={theme === 'dark' ? 'moon' : theme === 'light' ? 'sun' : 'auto'} size={16} /><span>{theme === 'auto' ? 'Auto' : theme === 'light' ? 'Claro' : 'Escuro'}</span>
+          </button>
           <button className={`chip conn ${connection}`} onClick={poke} aria-live="polite" title="Verificar agora"><span className={`dot ${connection}`} /><span>{status}</span></button>
+          </div>
         </header>
         <main id="conteudo" tabIndex={-1}>
           {connection === 'offline' && <div className="notice attention" role="status"><b>Sem conexão com o servidor</b>Os dados abaixo podem estar desatualizados e alterações não serão salvas até a conexão voltar.</div>}
-          <Outlet />
+          <div key={pathname} className="route"><Outlet /></div>
         </main>
       </div>
     </div>

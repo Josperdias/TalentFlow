@@ -42,6 +42,8 @@ export interface Leave {
   id: number; employee_id: number; employee: string; department: string; kind: string; starts_on: string;
   ends_on: string; days: number; reason: string; status: 'pending' | 'approved' | 'rejected'; decided_at: string | null;
 }
+export interface TrendPoint { month: string; applications: number; hired: number }
+export interface Trend { points: TrendPoint[]; total_applications: number; total_hired: number; note: string }
 export interface Insights {
   population: number; active: number; pending_leaves: number; plan_count: number; completed_plans: number;
   development_completion: { numerator: number; denominator: number; interpretation: string };

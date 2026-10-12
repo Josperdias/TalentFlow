@@ -23,11 +23,17 @@ export default function Login() {
   return (
     <div className="login">
       <section className="login-art">
-        <span className="orb o1" aria-hidden="true" /><span className="orb o2" aria-hidden="true" /><span className="grid-bg" aria-hidden="true" />
+        <span className="orb o1" aria-hidden="true" /><span className="orb o2" aria-hidden="true" /><span className="orb o3" aria-hidden="true" /><span className="grid-bg" aria-hidden="true" />
+        <span className="particles" aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ '--x': `${(i * 37) % 100}%`, '--d': `${9 + (i * 7) % 9}s`, '--s': `${(i * 13) % 7}s`, '--z': `${2 + (i % 4)}px` } as React.CSSProperties} />)}</span>
+        <svg className="flow-art" viewBox="0 0 520 220" aria-hidden="true">
+          <path className="flow-path" d="M20 170 C 120 170, 120 60, 220 60 S 330 150, 420 110 S 480 40, 500 40" />
+          <path className="flow-path b" d="M20 190 C 140 190, 160 100, 260 100 S 380 190, 500 90" />
+          {[[20, 170], [220, 60], [420, 110], [500, 40]].map(([x, y], i) => <g key={i} className="flow-node" style={{ animationDelay: `${600 + i * 250}ms` }}><circle cx={x} cy={y} r="16" className="halo" /><circle cx={x} cy={y} r="6" /></g>)}
+        </svg>
         <div className="login-brand"><Mark size={42} /><b>TalentFlow <small>People</small></b></div>
         <div className="login-copy">
           <p className="kicker">Recrutamento · Pessoas · Desenvolvimento</p>
-          <h1>Pessoas, da vaga à carreira, em um só registro.</h1>
+          <h1>{'Pessoas, da vaga à carreira, em um só registro.'.split(' ').map((w, i) => <span key={i} className="word" style={{ animationDelay: `${200 + i * 70}ms` }}>{w}{' '}</span>)}</h1>
           <p className="lede">Os mesmos dados no site, no Android e no Windows: o que uma pessoa altera aparece para as outras em segundos.</p>
           <ul className="points">
             <li><Icon name="sync" size={18} /><span>Sincronização entre todos os aplicativos</span></li>

@@ -27,6 +27,9 @@ public class RealApiTests
         var e = await Assert.ThrowsAsync<ApiException>(() => orbe.JobDetailAsync(nexaJobs[0].Id));
         Assert.Equal(404, e.Status);
         Assert.False(string.IsNullOrEmpty((await nexa.HealthAsync()).ApiVersion));
+        var trend = await nexa.TrendAsync();
+        Assert.NotEmpty(trend.Points);
+        Assert.Equal(trend.TotalApplications, trend.Points.Sum(p => p.Applications));
     }
 
     [SkippableFact]
