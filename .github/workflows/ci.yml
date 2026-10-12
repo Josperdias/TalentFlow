@@ -107,3 +107,49 @@ jobs:
             dist/talentflow-web-v*.zip
             dist/talentflow-web-v*.zip.sha256
             docs/screenshots/*.png
+
+  compose:
+    name: compose (servidor em contêineres: subir, provisionar, backup/restore)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configurar .env de teste
+        working-directory: infra
+        run: |
+          cp .env.example .env
+          sed -i "s|^PGPASSWORD=.*|PGPASSWORD=$(openssl rand -hex 24)|" .env
+          sed -i "s|^TRUSTED_ORIGINS=.*|TRUSTED_ORIGINS=https://rh.exemplo.test|" .env
+      - name: Subir PostgreSQL + API (migrações no entrypoint)
+        working-directory: infra
+        run: |
+          docker compose up -d --build
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/api/v1/health && break; sleep 2; done
+          curl -sf http://127.0.0.1:8000/api/v1/health
+      - name: Produção não serve HTML, UI legada nem contas de demonstração
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/workspace)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8000/api/v1/auth/token -H 'Content-Type: application/json' -d '{"email":"admin@nexa.demo","password":"Demo@2026!","client":"cli"}')" = "401"
+      - name: Provisionar empresa e administrador, entrar e criar uma vaga
+        working-directory: infra
+        run: |
+          printf 'SenhaForte-Compose-2026!\n' | docker compose exec -T api python -m scripts.provision_admin --company "Empresa CI" --slug empresa-ci --email dono@empresa-ci.test
+          TOK=$(curl -sf -X POST http://127.0.0.1:8000/api/v1/auth/token -H 'Content-Type: application/json' -d '{"email":"dono@empresa-ci.test","password":"SenhaForte-Compose-2026!","client":"cli"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+          curl -sf -X POST http://127.0.0.1:8000/api/v1/jobs -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d '{"title":"Vaga criada no teste do compose"}' | tee /tmp/job.json
+          echo "$TOK" > /tmp/tok
+      - name: Backup, destruir dados e restaurar
+        working-directory: infra
+        run: |
+          ./backup.sh 1
+          ls -l backups/*.dump
+          docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "delete from audit_logs; delete from job_stages; delete from jobs;"'
+          TOK=$(cat /tmp/tok)
+          test "$(curl -sf http://127.0.0.1:8000/api/v1/jobs -H "Authorization: Bearer $TOK" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')" = "0"
+          echo RESTAURAR | ./restore.sh "$(ls backups/*.dump | head -1)"
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8000/api/v1/health >/dev/null && break; sleep 2; done
+          N=$(curl -sf http://127.0.0.1:8000/api/v1/jobs -H "Authorization: Bearer $TOK" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+          echo "vagas após restaurar: $N"; test "$N" = "1"
+      - name: Logs da API (em caso de falha)
+        if: failure()
+        working-directory: infra
+        run: docker compose logs --tail=80 api db

@@ -1,0 +1,5 @@
+# Revisão obrigatória por área (a proteção de branch exige a aprovação dos code owners).
+*                       @Josperdias
+/services/api/          @Josperdias
+/apps/                  @Josperdias
+/.github/               @Josperdias

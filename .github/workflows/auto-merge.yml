@@ -1,0 +1,25 @@
+name: auto-merge
+
+# Liga o recurso nativo de AUTO-MERGE do GitHub nos PRs marcados com o rótulo "automerge".
+# O GitHub só conclui o merge DEPOIS que a proteção da branch main for satisfeita: aprovações exigidas,
+# status checks obrigatórios (ci, android, windows), conversas resolvidas. Este workflow nunca faz merge
+# direto e nunca contorna a proteção. Se a proteção não estiver configurada, o recurso não funciona (por desenho).
+on:
+  pull_request_target:
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  enable:
+    if: contains(github.event.pull_request.labels.*.name, 'automerge') && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      # Não faz checkout do código do PR (pull_request_target roda com permissões do repositório).
+      - name: Habilitar auto-merge (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR" --auto --squash --repo "$GITHUB_REPOSITORY"
