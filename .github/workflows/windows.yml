@@ -33,7 +33,7 @@ jobs:
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: '8.0.x' }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
@@ -68,7 +68,7 @@ jobs:
     needs: core
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: '8.0.x' }
       - name: Versão do produto
         shell: pwsh
