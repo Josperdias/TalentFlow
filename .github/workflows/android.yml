@@ -164,7 +164,8 @@ jobs:
             ./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true --console=plain || echo "FALHOU" > /tmp/ui-failed
             mkdir -p ../../docs/screenshots
             adb pull /sdcard/Android/data/br.com.talentflow.people.debug/files/screenshots/. ../../docs/screenshots/ || true
-            adb logcat -d -s TalentFlow AndroidRuntime:E | tail -40 > /tmp/logcat.txt || true
+            echo '--- logcat (TalentFlow / erros do app) ---'
+            adb logcat -d -s TalentFlow:V AndroidRuntime:E | tail -120 || true
             test ! -f /tmp/ui-failed
       - name: Logs da API (em caso de falha)
         if: always()

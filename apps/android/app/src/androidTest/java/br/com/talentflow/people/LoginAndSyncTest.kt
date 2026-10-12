@@ -1,7 +1,10 @@
 package br.com.talentflow.people
 
 import android.graphics.Bitmap
+import android.util.Log
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.printToLog
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -42,8 +45,17 @@ class LoginAndSyncTest {
         File(dir, "$name.png").outputStream().use { rule.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
-    private fun waitForText(text: String, ms: Long = 20_000) =
-        rule.waitUntil(ms) { rule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty() }
+    private fun waitForText(text: String, ms: Long = 20_000) {
+        try {
+            rule.waitUntil(ms) { rule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty() }
+        } catch (e: ComposeTimeoutException) {
+            // Diagnóstico: o que havia na tela quando a espera expirou (vai para o log do CI via logcat).
+            Log.e("TalentFlow", "TIMEOUT esperando o texto: '$text'")
+            rule.onRoot().printToLog("TalentFlow")
+            runCatching { shot("android-falha-" + text.take(20).replace(Regex("\\W+"), "-")) }
+            throw AssertionError("Texto '$text' não apareceu em ${ms / 1000}s", e)
+        }
+    }
 
     /** "Outro cliente": fala direto com a API como o app do Windows ou o site fariam. */
     private fun apiToken(email: String): String {
