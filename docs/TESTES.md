@@ -58,7 +58,7 @@ O CI confere que a integração **não foi pulada** (`skipped == 0`).
 ## 7. Clientes nativos na interface
 - **Android (CI):** APK de depuração compila e é verificado com `aapt2` (sem WebView). O teste instrumentado Compose
   (`LoginAndSyncTest`: servidor -> login -> visão geral -> criar vaga pela UI -> vaga criada por **outro cliente** aparece sem recarregar)
-  roda em emulador API 34 contra a API real; **status: ver `STATUS.md`** (estava falhando com timeout de espera; diagnóstico em andamento).
+  roda em emulador API 34 contra a API real e **passa no CI** (commit 6928806). A primeira execução falhou e o diagnóstico mostrou um bug real de lista, já corrigido.
 - **Windows (CI):** publicação, instalador e zip gerados; teste de fumaça abre o app e captura a tela. Sem teste manual.
 - **Compose (CI):** subir, provisionar admin, login, backup, apagar dados, restaurar: verde.
 
